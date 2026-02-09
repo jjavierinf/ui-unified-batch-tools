@@ -9,6 +9,7 @@ export function SqlEditor() {
   const files = useEditorStore((s) => s.files);
   const updateContent = useEditorStore((s) => s.updateContent);
   const saveFile = useEditorStore((s) => s.saveFile);
+  const darkMode = useEditorStore((s) => s.darkMode);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
   const file = selectedFile ? files[selectedFile] : null;
@@ -40,7 +41,7 @@ export function SqlEditor() {
       key={selectedFile}
       defaultValue={file.content}
       language="sql"
-      theme="vs-dark"
+      theme={darkMode ? "vs-dark" : "light"}
       onChange={handleChange}
       onMount={handleMount}
       options={{

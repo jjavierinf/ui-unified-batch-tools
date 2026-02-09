@@ -22,24 +22,49 @@ export function WorkspaceHeader() {
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-surface border-b border-sidebar-border shrink-0">
-      <div className="flex items-center gap-3">
-        <span className="text-xs uppercase tracking-wider text-text-tertiary font-medium">
-          Workspace
-        </span>
-        <span className="text-sm font-semibold text-foreground">
-          SQL models
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3">
+    <header className="flex items-center justify-between px-4 py-0 bg-surface border-b border-sidebar-border shrink-0">
+      <nav className="flex items-center gap-1 h-10">
+        <Link
+          href="/editor"
+          className="flex items-center gap-1.5 px-3 h-full text-xs font-medium text-foreground border-b-2 border-accent"
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          SQL Editor
+        </Link>
         <Link
           href="/pipelines"
-          className="text-xs text-text-secondary hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 px-3 h-full text-xs font-medium text-text-secondary hover:text-foreground border-b-2 border-transparent transition-colors"
         >
-          Orchestration &rarr;
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="16 18 22 12 16 6" />
+            <polyline points="8 6 2 12 8 18" />
+          </svg>
+          Pipelines
         </Link>
+      </nav>
 
+      <div className="flex items-center gap-2">
         <EnvironmentToggle />
         <ThemeToggle />
 
@@ -48,11 +73,11 @@ export function WorkspaceHeader() {
           disabled={!hasChanges}
           className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
             hasChanges
-              ? "bg-accent text-white hover:bg-accent/80"
+              ? "bg-accent text-white hover:bg-accent/80 cursor-pointer"
               : "bg-surface-hover text-text-tertiary cursor-not-allowed"
           }`}
         >
-          Save changes
+          Save all
           {hasChanges && (
             <span className="ml-1.5 bg-white/20 px-1.5 py-0.5 rounded text-[10px]">
               {modifiedCount}

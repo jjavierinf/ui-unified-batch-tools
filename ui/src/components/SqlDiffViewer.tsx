@@ -6,6 +6,7 @@ import { useEditorStore } from "@/lib/store";
 export function SqlDiffViewer() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
+  const darkMode = useEditorStore((s) => s.darkMode);
 
   const file = selectedFile ? files[selectedFile] : null;
 
@@ -17,7 +18,7 @@ export function SqlDiffViewer() {
       original={file.savedContent}
       modified={file.content}
       language="sql"
-      theme="vs-dark"
+      theme={darkMode ? "vs-dark" : "light"}
       options={{
         readOnly: true,
         minimap: { enabled: false },
