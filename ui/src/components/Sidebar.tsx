@@ -81,7 +81,7 @@ export function Sidebar() {
           </div>
           <button
             onClick={() => setIsCreating(true)}
-            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-hover text-text-tertiary hover:text-foreground transition-colors cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-hover text-text-tertiary hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             title="New SQL file"
           >
             <svg

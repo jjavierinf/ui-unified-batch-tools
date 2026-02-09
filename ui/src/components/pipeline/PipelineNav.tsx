@@ -26,7 +26,7 @@ export function PipelineNav() {
       <div className="px-2 py-2 border-b border-sidebar-border space-y-1.5">
         <button
           onClick={() => selectPipeline(null)}
-          className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-foreground transition-colors cursor-pointer px-1 py-1"
+          className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-foreground transition-colors cursor-pointer px-1 py-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         >
           <svg
             width="12"
@@ -91,7 +91,7 @@ export function PipelineNav() {
               <button
                 key={dag.dagName}
                 onClick={() => selectPipeline(dag.dagName)}
-                className={`w-full text-left px-3 py-1.5 transition-colors cursor-pointer ${
+                className={`w-full text-left px-3 py-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                   isActive
                     ? "bg-accent/10 text-accent border-r-2 border-accent"
                     : "text-text-secondary hover:bg-surface-hover hover:text-foreground"

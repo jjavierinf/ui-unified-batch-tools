@@ -77,11 +77,20 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
 
   if (node.isFolder) {
     return (
-      <div>
+      <div role="treeitem" aria-expanded={isExpanded}>
         <div
-          className="flex items-center gap-1.5 py-1 cursor-pointer hover:bg-surface-hover text-foreground rounded-sm mx-1 text-sm"
+          className="flex items-center gap-1.5 py-1 cursor-pointer hover:bg-surface-hover text-foreground rounded-sm mx-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm"
           style={{ paddingLeft }}
           onClick={() => toggleFolder(node.path)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleFolder(node.path);
+            }
+          }}
+          tabIndex={0}
+          role="button"
+          aria-label={`${isExpanded ? "Collapse" : "Expand"} folder ${node.name}`}
         >
           <span
             className={`transition-transform duration-150 inline-flex items-center justify-center w-3 ${
@@ -102,22 +111,35 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
           <span className="truncate text-xs">{node.name}</span>
         </div>
         {isExpanded &&
-          node.children.map((child) => (
-            <FileTreeNode key={child.path} node={child} depth={depth + 1} />
-          ))}
+          <div role="group">
+            {node.children.map((child) => (
+              <FileTreeNode key={child.path} node={child} depth={depth + 1} />
+            ))}
+          </div>
+        }
       </div>
     );
   }
 
   return (
     <div
-      className={`flex items-center gap-1.5 py-1 cursor-pointer rounded-sm mx-1 text-xs ${
+      className={`flex items-center gap-1.5 py-1 cursor-pointer rounded-sm mx-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm ${
         isSelected
           ? "bg-accent/15 text-foreground"
           : "text-text-secondary hover:bg-surface-hover"
       }`}
       style={{ paddingLeft: paddingLeft + 18 }}
       onClick={() => selectFile(node.path)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectFile(node.path);
+        }
+      }}
+      tabIndex={0}
+      role="treeitem"
+      aria-selected={isSelected}
+      aria-label={`${node.name}${isModified ? " (modified)" : ""}`}
     >
       <SqlFileIcon />
       <span className="truncate">{node.name}</span>
