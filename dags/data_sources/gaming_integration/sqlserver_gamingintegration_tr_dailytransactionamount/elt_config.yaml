@@ -1,0 +1,32 @@
+# Saga ELT Job Configuration
+
+# Spark
+job_name: "sqlserver_gamingintegration_tr_dailytransactionamount"
+job_description: "Incremental,BatchingHighFrequency"
+spark_logging_level: "WARN" #  "ALL", "DEBUG", "ERROR", "FATAL", "INFO", "OFF", "TRACE", "WARN"
+spark_session_configs: {}
+expected_workload: "medium" # "low", "medium", "high"
+
+# Read
+source:
+  type: "sqlserver" # sqlserver, mysql, postgres
+  conn: "sqlserver_GamingIntegration_conn" # Airflow variable key with source connection data
+  options:
+    query: "select_from_source.sql" # SQL file with query to read from source
+
+# Write
+target:
+  type: "starrocks" # starrocks
+  conn: "starrocks_conn" # Airflow variable key with target connection data
+  options:
+    database: "db_stage"
+    table: "gamingintegration_tr_dailytransactionamount"
+
+# Transform
+add_saga_columns: true # true/false adds or omit adding saga columns to dataframe
+
+# Validations
+validations:
+  schema_columns_changes:
+    ddl_stage_filename: "create_table_stage.sql" # SQL file with ddl stage table creation used in schema validation
+    notification_excluded_columns: [] # column names to exclude from schema changes notification 
