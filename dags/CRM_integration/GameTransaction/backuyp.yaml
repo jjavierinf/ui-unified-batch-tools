@@ -1,0 +1,64 @@
+# config.yaml
+expected_workload: high
+#   - "high" => Use Spark with 4 cores for high-performance tasks.
+#   - "medium" => Use Spark with 2 cores for moderate workloads.
+#   - "low" => Use Python for lightweight tasks with minimal resource usage.
+# Set the expected workload to control the execution engine and resource allocation.
+
+source:
+  type: sql_server
+  conn: sqlserver_GamingIntegration_conn
+  table: GameTransaction
+  schema: tr
+  query: |
+    SELECT
+      gameTransactionID, transactionTypeID, gameSessionID,
+      providerRoundUID, providerTransactionUID,
+      amount, afterBalance, jackpotContribution,
+      transactionDate, rowCreated, rowModified,
+      roundStatusTypeID, roundID, liveCasinoTableID,
+      cancelTransactionID, relatedTransactionID,
+      jackpotWin, jackpotWinAmount,
+      bonusBalance, lockedCashBalance, lockedCashWinningsBalance,
+      riskBonusAmount, riskLockedCashAmount, riskLockedCashWinningsAmount,
+      winBonusAmount, winLockedCashAmount, winLockedCashWinningsAmount
+    FROM tr.GameTransaction WITH (NOLOCK)
+    WHERE rowModified >= DATEADD(HOUR, -48, CAST('<logical_date>' AS DATETIME))
+      AND rowModified <= DATEADD(HOUR, 1, CAST('<logical_date>' AS DATETIME))
+    UNION ALL
+    SELECT
+      gameTransactionID, transactionTypeID, gameSessionID,
+      providerRoundUID, providerTransactionUID,
+      amount, afterBalance, jackpotContribution,
+      transactionDate, rowCreated, rowModified,
+      roundStatusTypeID, roundID, liveCasinoTableID,
+      cancelTransactionID, relatedTransactionID,
+      jackpotWin, jackpotWinAmount,
+      bonusBalance, lockedCashBalance, lockedCashWinningsBalance,
+      riskBonusAmount, riskLockedCashAmount, riskLockedCashWinningsAmount,
+      winBonusAmount, winLockedCashAmount, winLockedCashWinningsAmount
+    FROM tr.GameTransactionArchive WITH (NOLOCK)
+    WHERE rowModified >= DATEADD(HOUR, -48, CAST('<logical_date>' AS DATETIME))
+      AND rowModified <= DATEADD(HOUR, 1, CAST('<logical_date>' AS DATETIME))
+  source_timezone: US/Eastern
+  incremental_update_field: rowModified
+
+target:
+  type: starrocks
+  database: db_stage
+  table: GamingIntegration_tr_GameTransaction
+
+dag_type: incremental
+
+dag_config:
+  dag_name: dag_CRM_integration_tr_GameTransaction
+  integration_name: CRM_integration
+  dag_description: DAG to replicate GamingIntegration GameTransaction (UNION with Archive, 48h lookback)
+  dag_schedule_interval: 0 * * * *
+  dag_catchup: False
+  dag_max_active_runs: 1
+  dag_tags:
+    - CRM_integration
+    - incremental
+  dag_owner: a.kwiek
+  dag_start_date: "2024-01-10T00:00:00"

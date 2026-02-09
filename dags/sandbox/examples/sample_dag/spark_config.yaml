@@ -1,0 +1,190 @@
+# Spark Job Configuration Examples
+
+# Sample Job: Simple Snapshot Job
+sample_spark_job:
+  # This job is a simple snapshot job that loads data from SQL Server into StarRocks.
+
+  # SQL Server connection details
+  sql_server:
+    schema: dbo
+    table: Customers_DAG_Sample
+
+  # StarRocks connection details
+  starrocks:
+    database: db_stage_DEVELOP
+    table: customer_details
+    columns: customer_id,customer_name,birthdate,created_at
+
+  # Spark configuration for a simple snapshot job
+  spark:
+    num_splits: 1
+    jars:
+      - /opt/bitnami/jars/starrocks-spark-connector-3.4_2.12-1.1.1.jar
+      - /opt/bitnami/jars/mysql-connector-java-8.0.30.jar
+      - /opt/bitnami/jars/mssql-jdbc-9.2.1.jre8.jar
+    driver_memory: 1g
+    executor_cores: 1
+    total_executor_cores: 1
+    executor_memory: 1g
+    num_executors: 1
+
+# Sample Job: Snapshot Job with Options
+customer_spark_job:
+  # This job is a snapshot job with various options. It loads data from SQL Server into StarRocks, 
+  # splits the data into batches, and applies optional conditions.
+
+  # SQL Server connection details
+  sql_server:
+    host: PTYBIDB02.ITSPTY.DOM
+    db: BI
+    user: BIInterface
+    password: QaWsEdRf!777
+    schema: interface
+    table: Customer
+
+  # StarRocks connection details
+  starrocks:
+    database: db_stage_DEVELOP
+    table: crm_customer_today
+    columns: customer,email,brandAbbr,affiliate,traffic,firstName,phone,location,country,region
+
+  # Spark configuration for a snapshot job with options
+  spark:
+    # Number of batches to split the data (default is 1)
+    num_splits: 30
+
+    # Optional parameters for batch insert
+    max_retries: 2
+    retry_delay: 20
+
+    # Query mode: "snapshot" (default)
+    query_mode: snapshot
+
+    # Jars for connectors
+    jars:
+      - /opt/bitnami/jars/starrocks-spark-connector-3.4_2.12-1.1.1.jar
+      - /opt/bitnami/jars/mysql-connector-java-8.0.30.jar
+      - /opt/bitnami/jars/mssql-jdbc-9.2.1.jre8.jar
+
+    driver_memory: 16g
+    executor_cores: 1
+    total_executor_cores: 4
+    executor_memory: 2g
+    num_executors: 2
+
+    # To be appended to the WHERE condition
+    other_conditions: firstName <> 'test'
+
+# Sample Job: Full Incremental Job
+tb_customer_spark_job:
+  # This job is a full incremental job, meaning it loads all data from specific date fields within a lookback period.
+
+  # SQL Server connection details
+  sql_server:
+    host: PAPRDSQL04.PPOPROD.TECH
+    db: ASIDb
+    user: p9crmAutomation01
+    password: w0ntu8ghowrhg3
+    schema: dbo
+    table: tbCustomer
+
+  # StarRocks connection details
+  starrocks:
+    database: db_stage_DEVELOP
+    table: tb_customer
+    columns: ID,CustomerID,,NameFirst,NameMI,Address,City,State,Zip
+
+  # Spark configuration for a full incremental job
+  spark:
+    # Incremental mode
+    query_mode: incremental
+
+    # Date fields used for incremental queries
+    date_fields: rowModified,rowCreated
+
+    # Additional SQL conditions
+    other_conditions: 1=1
+
+    # Lookback period in minutes
+    lookback_minutes: 1440
+
+    # Jars for connectors
+    jars:
+      - /opt/bitnami/jars/starrocks-spark-connector-3.4_2.12-1.1.1.jar
+      - /opt/bitnami/jars/mysql-connector-java-8.0.30.jar
+      - /opt/bitnami/jars/mssql-jdbc-9.2.1.jre8.jar
+
+    total_executor_cores: 5
+    driver_memory: 4g
+    executor_cores: 1
+    executor_memory: 2g
+    num_executors: 2
+
+# Sample Job: Incremental Job with Custom WHERE Condition
+tb_customer_spark_job_custom_where:
+  # This job is an incremental job with a custom WHERE condition, allowing fine-grained control over the data to be loaded.
+
+  # SQL Server connection details
+  sql_server:
+    host: PAPRDSQL04.PPOPROD.TECH
+    db: ASIDb
+    user: p9crmAutomation01
+    password: w0ntu8ghowrhg3
+    schema: dbo
+    table: tbCustomer
+    # Custom SQL Server WHERE condition
+    # The placeholder {logical_date} will be replaced by the actual date (not the real execution date but the logical one).
+    # The where_condition will override all other settings like mode: append / incremental.
+    where_condition: rowCreated <= '{logical_date}' AND rowCreated > DATEADD(MINUTE, -1440, '{logical_date}') and NameFirst <> NameLast
+  # StarRocks connection details
+  starrocks:
+    database: db_stage_DEVELOP
+    table: tb_customer
+    columns: saga_hash,saga_logical_run_ts,CustomerID,NameFirst,NameMI,Address,City,State,Zip
+    sql_create_table: CRM_integration/tb_customer_DAG/sql_files/ddl/create_table_tb_customer_stage.sql
+
+  # Spark configuration for an incremental job with a custom WHERE condition
+  spark:
+    # Jars for connectors
+    jars:
+      - /opt/bitnami/jars/starrocks-spark-connector-3.4_2.12-1.1.1.jar
+      - /opt/bitnami/jars/mysql-connector-java-8.0.30.jar
+      - /opt/bitnami/jars/mssql-jdbc-9.2.1.jre8.jar
+
+    total_executor_cores: 5
+    driver_memory: 4g
+    executor_cores: 1
+    executor_memory: 2g
+    num_executors: 2
+
+sample_from_postgres_job:
+  # This job is a simple snapshot job that loads data from SQL Server into StarRocks.
+
+  # SQL Server connection details
+  postgres:
+    host: postgres_host 
+    db: postgres_db 
+    user: postgres_user 
+    password: postgres_password 
+    schema: postgres_schema 
+    table: postgres_table 
+    query: SELECT * FROM postgres_samples;
+
+  # StarRocks connection details
+  starrocks:
+    database: db_stage_DEVELOP
+    table: customer_details
+    columns: customer_id,customer_name,birthdate,created_at
+
+  # Spark configuration for a simple snapshot job
+  spark:
+    num_splits: 1
+    jars:
+      - /opt/bitnami/jars/starrocks-spark-connector-3.4_2.12-1.1.1.jar
+      - /opt/bitnami/jars/mysql-connector-java-8.0.30.jar
+      - /opt/bitnami/jars/mssql-jdbc-9.2.1.jre8.jar
+    driver_memory: 1g
+    executor_cores: 1
+    total_executor_cores: 1
+    executor_memory: 1g
+    num_executors: 1

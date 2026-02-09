@@ -1,0 +1,512 @@
+import { SqlFile, DagConfig } from "./types";
+
+function f(content: string): SqlFile {
+  return { content, savedContent: content, status: "draft" };
+}
+
+export const initialFiles: Record<string, SqlFile> = {
+  // ── CRM_integration / AccountReference ──────────────────────────
+  "dags/CRM_integration/AccountReference/sql_files/ddl/create_table_stage.sql": f(
+`CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountReference (
+    saga_hash BIGINT,
+    saga_real_run_ts DATETIME,
+    saga_logical_run_ts DATETIME,
+    customerID STRING,
+    lastLoginDateTime STRING,
+    lastPasswordResetDateTime STRING,
+    lastFailedLoginDateTime STRING,
+    lastResetPasswordRequestDateTime STRING,
+    lastClickResetPasswordEmailDateTime STRING
+)
+PRIMARY KEY (saga_hash)
+DISTRIBUTED BY HASH (saga_hash)
+PROPERTIES(
+    "replication_num" = "2" ,
+    "enable_persistent_index" = "true"
+);`
+  ),
+
+  "dags/CRM_integration/AccountReference/sql_files/ddl/create_table_data_model.sql": f(
+`CREATE TABLE IF NOT EXISTS db_data_model.Accounts_dbo_AccountReference (
+    customerID STRING,
+    saga_hash BIGINT,
+    saga_real_run_ts DATETIME,
+    lastLoginDateTime DATETIME,
+    lastPasswordResetDateTime DATETIME,
+    lastFailedLoginDateTime DATETIME,
+    lastResetPasswordRequestDateTime DATETIME,
+    lastClickResetPasswordEmailDateTime DATETIME
+)
+PRIMARY KEY (customerID)
+DISTRIBUTED BY HASH (customerID)
+PROPERTIES(
+    "replication_num" = "2",
+    "enable_persistent_index" = "true"
+);`
+  ),
+
+  "dags/CRM_integration/AccountReference/sql_files/transformations/data_model_task.sql": f(
+`TRUNCATE TABLE db_data_model.Accounts_dbo_AccountReference
+;
+
+INSERT INTO
+db_data_model.Accounts_dbo_AccountReference
+SELECT
+\tupper(trim(customerID)),
+\tsaga_hash,
+\tsaga_real_run_ts,
+\tlastLoginDateTime,
+\tlastPasswordResetDateTime,
+\tlastFailedLoginDateTime,
+\tlastResetPasswordRequestDateTime,
+\tlastClickResetPasswordEmailDateTime
+FROM db_stage.Accounts_dbo_AccountReference
+WHERE
+\tsaga_logical_run_ts = '{{ ts | convert_utc_to_et }}'
+ORDER BY
+\tsaga_real_run_ts ASC
+;`
+  ),
+
+  "dags/CRM_integration/AccountReference/sql_files/transformations/delete_logs.sql": f(
+`DELETE FROM db_stage.Accounts_dbo_AccountReference
+WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 3 MONTH)
+;`
+  ),
+
+  // ── CRM_integration / Game ──────────────────────────────────────
+  "dags/CRM_integration/Game/sql_files/ddl/create_table_stage.sql": f(
+`CREATE TABLE IF NOT EXISTS db_stage.GamingIntegration_gc_Game (
+    saga_hash BIGINT,
+    saga_real_run_ts DATETIME,
+    saga_logical_run_ts DATETIME,
+    gameID STRING,
+    gameTypeID STRING,
+    gameSubTypeID STRING,
+    name STRING,
+    gamingGroupingKey STRING,
+    hasJackpot STRING,
+    freeRoundsSupported STRING,
+    aspectRatio STRING,
+    width STRING,
+    height STRING,
+    scaleUp STRING,
+    scaleDown STRING,
+    stretching STRING,
+    html5 STRING,
+    rowCreated STRING,
+    rowModified STRING,
+    isDeleted STRING,
+    platformID STRING,
+    title STRING,
+    subtitle STRING
+)
+PRIMARY KEY (saga_hash)
+DISTRIBUTED BY HASH (saga_hash)
+PROPERTIES(
+    "replication_num" = "2" ,
+    "enable_persistent_index" = "true"
+);`
+  ),
+
+  "dags/CRM_integration/Game/sql_files/ddl/create_table_data_model.sql": f(
+`CREATE TABLE IF NOT EXISTS db_data_model.GamingIntegration_gc_Game (
+    gameID INT,
+    saga_hash BIGINT,
+    saga_real_run_ts DATETIME,
+    gameTypeID INT,
+    gameSubTypeID INT,
+    name STRING,
+    gamingGroupingKey INT,
+    hasJackpot BOOLEAN,
+    freeRoundsSupported BOOLEAN,
+    aspectRatio STRING,
+    width INT,
+    height INT,
+    scaleUp BOOLEAN,
+    scaleDown BOOLEAN,
+    stretching BOOLEAN,
+    html5 BOOLEAN,
+    rowCreated DATETIME,
+    rowModified DATETIME,
+    isDeleted INT,
+    platformID INT,
+    title STRING,
+    subtitle STRING
+)
+PRIMARY KEY (gameID)
+DISTRIBUTED BY HASH (gameID)
+PROPERTIES(
+    "replication_num" = "2",
+    "enable_persistent_index" = "true"
+);`
+  ),
+
+  "dags/CRM_integration/Game/sql_files/transformations/data_model_task.sql": f(
+`TRUNCATE TABLE db_data_model.GamingIntegration_gc_Game
+;
+
+INSERT INTO
+db_data_model.GamingIntegration_gc_Game
+SELECT
+\tstage.gameID,
+\tstage.saga_hash,
+\tstage.saga_real_run_ts,
+\tstage.gameTypeID,
+\tstage.gameSubTypeID,
+\tstage.name,
+\tstage.gamingGroupingKey,
+\tstage.hasJackpot,
+\tstage.freeRoundsSupported,
+\tstage.aspectRatio,
+\tCAST(CAST(stage.width AS FLOAT) AS INT),
+\tCAST(CAST(stage.height AS FLOAT) AS INT),
+\tstage.scaleUp,
+\tstage.scaleDown,
+\tstage.stretching,
+\tstage.html5,
+\tstage.rowCreated,
+\tstage.rowModified,
+\tstage.isDeleted,
+\tstage.platformID,
+\tstage.title,
+\tstage.subtitle
+FROM db_stage.GamingIntegration_gc_Game AS stage
+WHERE
+    stage.saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+ORDER BY
+\tsaga_real_run_ts ASC
+;`
+  ),
+
+  "dags/CRM_integration/Game/sql_files/transformations/delete_logs.sql": f(
+`DELETE FROM db_stage.GamingIntegration_gc_Game
+WHERE
+
+    saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
+
+;`
+  ),
+
+  // ── CRM_integration / GameTransaction ───────────────────────────
+  "dags/CRM_integration/GameTransaction/sql_files/ddl/create_table_stage.sql": f(
+`CREATE TABLE IF NOT EXISTS db_stage.GamingIntegration_tr_GameTransaction (
+    saga_hash BIGINT,
+    saga_real_run_ts DATETIME,
+    saga_logical_run_ts DATETIME,
+    gameTransactionID STRING,
+    transactionTypeID STRING,
+    gameSessionID STRING,
+    providerRoundUID STRING,
+    providerTransactionUID STRING,
+    amount STRING,
+    afterBalance STRING,
+    jackpotContribution STRING,
+    transactionDate STRING,
+    rowCreated STRING,
+    rowModified STRING,
+    roundStatusTypeID STRING,
+    roundID STRING,
+    liveCasinoTableID STRING,
+    cancelTransactionID STRING,
+    relatedTransactionID STRING,
+    jackpotWin STRING,
+    jackpotWinAmount STRING,
+    bonusBalance STRING,
+    lockedCashBalance STRING,
+    lockedCashWinningsBalance STRING,
+    riskBonusAmount STRING,
+    riskLockedCashAmount STRING,
+    riskLockedCashWinningsAmount STRING,
+    winBonusAmount STRING,
+    winLockedCashAmount STRING,
+    winLockedCashWinningsAmount STRING
+)
+PRIMARY KEY (saga_hash)
+DISTRIBUTED BY HASH (saga_hash)
+PROPERTIES(
+    "replication_num" = "2" ,
+    "enable_persistent_index" = "true"
+)
+;`
+  ),
+
+  "dags/CRM_integration/GameTransaction/sql_files/ddl/create_table_data_model.sql": f(
+`CREATE TABLE IF NOT EXISTS db_data_model.GamingIntegration_tr_GameTransaction (
+    gameTransactionId BIGINT,
+    saga_hash BIGINT,
+    saga_real_run DATETIME,
+    transactionTypeId INT,
+    gameSessionId BIGINT,
+    providerRoundUid STRING,
+    providerTransactionUid STRING,
+    amount INT,
+    afterBalance INT,
+    jackpotContribution INT,
+    transactionDate DATETIME,
+    rowCreated DATETIME,
+    rowModified DATETIME,
+    roundStatusTypeId INT,
+    roundId BIGINT,
+    liveCasinoTableId BIGINT,
+    cancelTransactionId BIGINT,
+    relatedTransactionId BIGINT,
+    jackpotWin BOOLEAN,
+    jackpotWinAmount INT,
+    bonusBalance float,
+    lockedCashBalance float,
+    lockedCashWinningsBalance float,
+    riskBonusAmount float,
+    riskLockedCashAmount float,
+    riskLockedCashWinningsAmount float,
+    winBonusAmount float,
+    winLockedCashAmount float,
+    winLockedCashWinningsAmount float
+)
+PRIMARY KEY (gameTransactionID)
+DISTRIBUTED BY HASH (gameTransactionID)
+PROPERTIES(
+    "replication_num" = "2",
+    "enable_persistent_index" = "true"
+)
+;`
+  ),
+
+  "dags/CRM_integration/GameTransaction/sql_files/transformations/data_model_task.sql": f(
+`INSERT INTO db_data_model.GamingIntegration_tr_GameTransaction
+SELECT
+\tstage.gameTransactionId,
+    stage.saga_hash,
+\tstage.saga_real_run_ts,
+\tstage.transactionTypeId,
+\tstage.gameSessionId,
+\tstage.providerRoundUid,
+\tstage.providerTransactionUid,
+\tstage.amount,
+\tstage.afterBalance,
+\tCAST(CAST(stage.jackpotContribution AS FLOAT) AS INT),
+\tstage.transactionDate,
+\tstage.rowCreated,
+\tstage.rowModified,
+\tCAST(CAST(stage.roundStatusTypeId AS FLOAT) AS INT),
+\tstage.roundId,
+\tstage.liveCasinoTableId,
+\tstage.cancelTransactionId,
+\tstage.relatedTransactionId,
+\tstage.jackpotWin,
+\tstage.jackpotWinAmount,
+\tstage.bonusBalance,
+\tstage.lockedCashBalance,
+\tstage.lockedCashWinningsBalance,
+\tstage.riskBonusAmount,
+\tstage.riskLockedCashAmount,
+\tstage.riskLockedCashWinningsAmount,
+\tstage.winBonusAmount,
+\tstage.winLockedCashAmount,
+\tstage.winLockedCashWinningsAmount
+FROM db_stage.GamingIntegration_tr_GameTransaction AS stage
+WHERE
+    stage.saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+ORDER BY
+\tsaga_real_run_ts ASC
+;`
+  ),
+
+  // ── BEATS_integration / AccountLogType ──────────────────────────
+  "dags/BEATS_integration/AccountLogType/sql_files/ddl/create_table_stage.sql": f(
+`CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountLogType (
+\tsaga_hash BIGINT,
+\tsaga_real_run_ts DATETIME,
+\tsaga_logical_run_ts DATETIME,
+\taccountLogTypeID STRING,
+\ttypeName STRING,
+\trowCreated STRING,
+\trowModified STRING
+)
+PRIMARY KEY (saga_hash)
+DISTRIBUTED BY HASH (saga_hash)
+PROPERTIES(
+    "replication_num" = "2" ,
+    "enable_persistent_index" = "true"
+)
+;`
+  ),
+
+  "dags/BEATS_integration/AccountLogType/sql_files/ddl/create_table_data_model.sql": f(
+`CREATE TABLE IF NOT EXISTS db_data_model.Accounts_dbo_AccountLogType (
+\taccountLogTypeId SMALLINT,
+\tsaga_hash BIGINT,
+\tsaga_real_run_ts DATETIME,
+\ttypeName VARCHAR(50),
+\trowCreated DATETIME,
+\trowModified DATETIME
+)
+PRIMARY KEY (accountLogTypeId)
+DISTRIBUTED BY HASH (accountLogTypeId)
+PROPERTIES(
+    "replication_num" = "2",
+    "enable_persistent_index" = "true"
+)
+;`
+  ),
+
+  "dags/BEATS_integration/AccountLogType/sql_files/transformations/data_model_task.sql": f(
+`TRUNCATE TABLE db_data_model.Accounts_dbo_AccountLogType
+;
+
+INSERT INTO db_data_model.Accounts_dbo_AccountLogType
+SELECT
+    accountLogTypeID,
+\tsaga_hash,
+\tsaga_real_run_ts,
+\ttypeName,
+\trowCreated,
+\trowModified
+FROM db_stage.Accounts_dbo_AccountLogType
+WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+ORDER BY saga_real_run_ts ASC
+;`
+  ),
+
+  "dags/BEATS_integration/AccountLogType/sql_files/transformations/delete_logs.sql": f(
+`DELETE FROM db_stage.Accounts_dbo_AccountLogType
+WHERE  saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
+;`
+  ),
+
+  // ── data_sources / gaming_integration / DailyTransactionAmount ──
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/ddl/create_table_stage.sql": f(
+`CREATE TABLE IF NOT EXISTS db_stage.gamingintegration_tr_dailytransactionamount (
+\t\`saga_hash\` BIGINT,
+\t\`saga_real_run_ts\` DATETIME,
+\t\`saga_logical_run_ts\` DATETIME,
+\t\`dailyTransactionAmountID\` STRING,
+\t\`customerID\` STRING,
+\t\`balance\` STRING,
+\t\`balanceDate\` STRING,
+\t\`rowCreated\` STRING,
+\t\`rowModified\` STRING,
+\t\`gameTransactionID\` STRING
+)
+PRIMARY KEY (\`saga_hash\`)
+DISTRIBUTED BY HASH (\`saga_hash\`)
+PROPERTIES(
+    "replication_num" = "2" ,
+    "enable_persistent_index" = "true"
+);`
+  ),
+
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/ddl/create_table_data_model.sql": f(
+`CREATE TABLE IF NOT EXISTS db_data_model.gamingintegration_tr_dailytransactionamount (
+\t\`dailyTransactionAmountId\` BIGINT,
+\t\`saga_hash\` BIGINT,
+\t\`saga_real_run_ts\` DATETIME,
+\t\`customerId\` VARCHAR(100),
+\t\`balance\` FLOAT,
+\t\`balanceDate\` DATETIME,
+\t\`rowCreated\` DATETIME,
+\t\`rowModified\` DATETIME,
+\t\`gameTransactionId\` BIGINT
+)
+PRIMARY KEY (\`dailyTransactionAmountId\`)
+DISTRIBUTED BY HASH (\`dailyTransactionAmountId\`)
+PROPERTIES(
+    "replication_num" = "2",
+    "enable_persistent_index" = "true"
+);`
+  ),
+
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/stage_to_data_model.sql": f(
+`INSERT INTO db_data_model.gamingintegration_tr_dailytransactionamount
+WITH data_rownum AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY \`dailyTransactionAmountID\`\t\t\t\t\t\t\t\t
+                               ORDER BY saga_real_run_ts DESC)
+                                     AS rn
+    FROM db_stage.gamingintegration_tr_dailytransactionamount
+    WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+)
+SELECT
+    \`dailyTransactionAmountID\`,
+\t\`saga_hash\`,
+\t\`saga_real_run_ts\`,
+\tupper(trim(\`customerID\`)),
+\t\`balance\`,
+\t\`balanceDate\`,
+\t\`rowCreated\`,
+\t\`rowModified\`,
+\t\`gameTransactionID\`
+FROM data_rownum
+WHERE rn = 1;`
+  ),
+
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/select_from_source.sql": f(
+`SELECT *
+FROM tr.DailyTransactionAmount
+WHERE (rowCreated <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
+  AND rowCreated > DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME))) OR
+  (rowModified <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
+  AND rowModified > DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME)));`
+  ),
+
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/delete_stage_old_records.sql": f(
+`DELETE FROM db_stage.gamingintegration_tr_dailytransactionamount
+WHERE balanceDate < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 2 DAY)
+;`
+  ),
+
+  // ── schema_and_user_creation ────────────────────────────────────
+  "dags/schema_and_user_creation/sql_files/schema_creation/schemas.sql": f(
+`CREATE DATABASE IF NOT EXISTS db_business_model_DEVELOP
+;
+CREATE DATABASE IF NOT EXISTS db_data_model_DEVELOP
+;
+CREATE DATABASE IF NOT EXISTS db_stage_DEVELOP
+;
+CREATE DATABASE IF NOT EXISTS db_business_model
+;
+CREATE DATABASE IF NOT EXISTS db_data_model
+;
+CREATE DATABASE IF NOT EXISTS db_stage
+;`
+  ),
+};
+
+export const dagConfigs: DagConfig[] = [
+  {
+    dagName: "dag_CRM_integration_dbo_AccountReference",
+    integrationName: "CRM_integration",
+    schedule: "7 0,3,6,9,12,15,18,21 * * *",
+    tags: ["CRM_integration", "snapshot"],
+    dagType: "snapshot",
+  },
+  {
+    dagName: "dag_CRM_integration_gc_Game",
+    integrationName: "CRM_integration",
+    schedule: "5 0,3,6,9,12,15,18,21 * * *",
+    tags: ["CRM_integration", "snapshot"],
+    dagType: "snapshot",
+  },
+  {
+    dagName: "dag_CRM_integration_tr_GameTransaction",
+    integrationName: "CRM_integration",
+    schedule: "0 * * * *",
+    tags: ["CRM_integration", "incremental"],
+    dagType: "incremental",
+  },
+  {
+    dagName: "dag_BEATS_integration_dbo_AccountLogType",
+    integrationName: "BEATS_integration",
+    schedule: "0 6 * * *",
+    tags: ["BEATS_integration", "snapshot"],
+    dagType: "snapshot",
+  },
+  {
+    dagName: "dag_data_sources_tr_DailyTransactionAmount",
+    integrationName: "data_sources",
+    schedule: "0 * * * *",
+    tags: ["data_sources", "incremental"],
+    dagType: "incremental",
+  },
+];

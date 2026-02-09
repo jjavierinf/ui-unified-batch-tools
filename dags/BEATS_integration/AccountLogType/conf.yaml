@@ -1,0 +1,36 @@
+# config.yaml
+expected_workload: low
+#   - "high" => Use Spark with 4 cores for high-performance tasks.
+#   - "medium" => Use Spark with 2 cores for moderate workloads.
+#   - "low" => Use Python for lightweight tasks with minimal resource usage.
+# Set the expected workload to control the execution engine and resource allocation.expected_workload: high 
+
+source:
+  type: sql_server  # postgres or sql_server
+  conn: sqlserver_Accounts_conn
+  table: AccountLogType
+  schema: dbo
+  query: select * from dbo.AccountLogType
+  source_timezone: US/Eastern
+  incremental_update_field: None 
+
+target:
+  type: starrocks
+  database: db_stage
+  table: Accounts_dbo_AccountLogType
+
+dag_type: snapshot  # Specify the job type: 'snapshot' or 'incremental'
+
+dag_config:
+  dag_name: dag_BEATS_integration_dbo_AccountLogType
+  integration_name: BEATS_integration
+  dag_description: DAG to replicate Accounts AccountLogType for BEATS_integration
+  dag_schedule_interval: 0 6 * * *
+  dag_catchup: False
+  dag_max_active_runs: 1
+  dag_tags:
+    - BEATS_integration
+    - snapshot
+    - v24.01.12 # This DAG was generated with the specified version of the Template Generator
+  dag_owner: r.ovalles # TODO validate this
+  dag_start_date: "2024-02-02T00:00:00"
