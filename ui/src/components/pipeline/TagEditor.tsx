@@ -84,7 +84,7 @@ export function TagEditor({ tags, onAdd, onRemove, allTags }: TagEditorProps) {
     <div>
       <label
         htmlFor={id}
-        className="block text-sm font-medium text-foreground mb-1"
+        className="block text-xs font-medium text-foreground mb-1.5"
       >
         Tags
       </label>
@@ -95,7 +95,7 @@ export function TagEditor({ tags, onAdd, onRemove, allTags }: TagEditorProps) {
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 bg-accent/10 text-accent px-2 py-1 rounded-full text-xs"
+              className="inline-flex items-center gap-1 bg-accent/10 text-accent px-2 py-0.5 rounded-full text-[11px]"
             >
               {tag}
               <button

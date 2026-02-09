@@ -142,7 +142,7 @@ export function PipelineOverview() {
                       <button
                         key={dag.dagName}
                         onClick={() => selectPipeline(dag.dagName)}
-                        className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group ${
+                        className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                           i % 2 === 1 ? "bg-surface-hover/30" : ""
                         }`}
                       >
