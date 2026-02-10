@@ -100,7 +100,7 @@ export function EditorPanel() {
         {/* Diff / Approval area */}
         <div
           className="border-t border-sidebar-border flex flex-col min-h-0"
-          style={{ flex: showApproval ? 3 : diffCollapsed ? 0 : 3 }}
+          style={{ flex: showApproval ? 3 : diffCollapsed ? "0 0 auto" : 3 }}
         >
           {showApproval ? (
             <ApprovalPanel />
