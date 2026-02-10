@@ -4,6 +4,7 @@ import "./globals.css";
 import { DarkModeInit } from "@/components/DarkModeInit";
 import { ToastContainer } from "@/components/ToastContainer";
 import { QuickOpen } from "@/components/QuickOpen";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -27,6 +28,7 @@ export default function RootLayout({
         {children}
         <ToastContainer />
         <QuickOpen />
+        <KeyboardShortcuts />
       </body>
     </html>
   );
