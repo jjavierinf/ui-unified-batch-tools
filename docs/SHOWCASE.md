@@ -13,11 +13,11 @@ Full SQL editing environment with file tree, Monaco editor, and diff viewer.
 
 **Dark mode** — file tree expanded, SQL syntax highlighting, status badges, environment toggle (Dev/Prod):
 
-![Editor - Dark mode](public/screenshots/01-editor-dark.png)
+![Editor - Dark mode](../ui/public/screenshots/01-editor-dark.png)
 
 **Light mode** — same layout, full theme support including Monaco editor theme swap:
 
-![Editor - Light mode](public/screenshots/02-editor-light.png)
+![Editor - Light mode](../ui/public/screenshots/02-editor-light.png)
 
 ### Key features
 - Repo browser sidebar with 21 SQL files organized by integration/table
@@ -32,7 +32,7 @@ Full SQL editing environment with file tree, Monaco editor, and diff viewer.
 
 Side-by-side diff comparing current buffer vs last saved version. Collapsible via the CHANGES header chevron.
 
-![Diff panel showing changes](public/screenshots/05-diff-panel.png)
+![Diff panel showing changes](../ui/public/screenshots/05-diff-panel.png)
 
 The diff panel shows inline additions (green) and the original content, just like a git diff. The orange dot on the file name and the "Save all (1)" button in the top bar indicate unsaved changes.
 
@@ -44,7 +44,7 @@ Environment toggle (Dev/Prod) controls the submit behavior:
 - **Dev submit:** status changes to Submitted
 - **Prod submit:** status changes to Pending Approval, showing the approval panel
 
-![Prod approval flow](public/screenshots/06-approval-flow.png)
+![Prod approval flow](../ui/public/screenshots/06-approval-flow.png)
 
 The approval panel shows submission timestamp and Approve/Reject buttons. Toast notifications confirm each action. Note the "Pending" badge in both the file tab and the tree node.
 
@@ -54,7 +54,7 @@ The approval panel shows submission timestamp and Approve/Reject buttons. Toast 
 
 VS Code-style modal with fuzzy filtering across all 21 SQL files. Arrow keys to navigate, Enter to open, Esc to close.
 
-![Quick open filtering "game"](public/screenshots/03-quick-open.png)
+![Quick open filtering "game"](../ui/public/screenshots/03-quick-open.png)
 
 ---
 
@@ -62,7 +62,7 @@ VS Code-style modal with fuzzy filtering across all 21 SQL files. Arrow keys to 
 
 Overlay listing all available shortcuts. Global Cmd+S saves the current file from any view with toast feedback.
 
-![Keyboard shortcuts overlay](public/screenshots/04-shortcuts.png)
+![Keyboard shortcuts overlay](../ui/public/screenshots/04-shortcuts.png)
 
 ---
 
@@ -72,13 +72,13 @@ All DAG configurations grouped by integration, with search/filter, type badges, 
 
 **Dark mode:**
 
-![Pipeline overview - Dark](public/screenshots/07-pipeline-overview.png)
+![Pipeline overview - Dark](../ui/public/screenshots/07-pipeline-overview.png)
 
 **Light mode:**  
 #TODO: los create tables no deberian estar en el overview, lo manejamos por atras nosotros
 #TODO: si necesitan un ddl ad hoc para campos distintos al default si pueden crearlo 
 
-![Pipeline overview - Light](public/screenshots/09-pipeline-light.png)
+![Pipeline overview - Light](../ui/public/screenshots/09-pipeline-light.png)
 
 ---
 
@@ -86,7 +86,7 @@ All DAG configurations grouped by integration, with search/filter, type badges, 
 
 Per-pipeline view with configuration editor and drag-and-drop task ordering.
 
-![Pipeline detail with task ordering](public/screenshots/08-pipeline-detail.png)
+![Pipeline detail with task ordering](../ui/public/screenshots/08-pipeline-detail.png)
 
 ### Configuration
 - **Cron input:** live validation indicator, 5/5 part counter, preset buttons (Hourly, Every 3h, Daily 6am, Every 15m)
