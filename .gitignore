@@ -33,3 +33,5 @@ DI-2810-screenshots/
 
 # Claude Code
 .claude/
+CLAUDE.md
+CLAUDE_*.md
