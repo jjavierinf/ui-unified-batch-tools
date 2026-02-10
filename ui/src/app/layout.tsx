@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DarkModeInit } from "@/components/DarkModeInit";
 import { ToastContainer } from "@/components/ToastContainer";
+import { QuickOpen } from "@/components/QuickOpen";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -25,6 +26,7 @@ export default function RootLayout({
         <DarkModeInit />
         {children}
         <ToastContainer />
+        <QuickOpen />
       </body>
     </html>
   );
