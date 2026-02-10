@@ -9,12 +9,14 @@ interface EditorStore {
   expandedFolders: Set<string>;
   darkMode: boolean;
   environment: Environment;
+  diffCollapsed: boolean;
 
   selectFile: (path: string) => void;
   updateContent: (path: string, content: string) => void;
   saveFile: (path: string) => void;
   toggleFolder: (path: string) => void;
   toggleDarkMode: () => void;
+  toggleDiffPanel: () => void;
   setEnvironment: (env: Environment) => void;
   createFile: (path: string) => void;
   submitFile: (path: string) => void;
@@ -31,6 +33,7 @@ export const useEditorStore = create<EditorStore>()(
       expandedFolders: new Set<string>(),
       darkMode: false,
       environment: "dev",
+      diffCollapsed: false,
 
       selectFile: (path) =>
         set({ selectedFile: path }),
@@ -78,6 +81,9 @@ export const useEditorStore = create<EditorStore>()(
 
       setEnvironment: (env) =>
         set({ environment: env }),
+
+      toggleDiffPanel: () =>
+        set((state) => ({ diffCollapsed: !state.diffCollapsed })),
 
       createFile: (path) =>
         set((state) => ({
@@ -144,6 +150,7 @@ export const useEditorStore = create<EditorStore>()(
           expandedFolders: new Set<string>(),
           darkMode: false,
           environment: "dev",
+          diffCollapsed: false,
         }),
     }),
     {
