@@ -1,12 +1,15 @@
 "use client";
 
 import { useEditorStore } from "@/lib/store";
+import { useToastStore } from "@/lib/toast-store";
 
 export function ApprovalPanel() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
   const approveFile = useEditorStore((s) => s.approveFile);
   const rejectFile = useEditorStore((s) => s.rejectFile);
+
+  const addToast = useToastStore((s) => s.addToast);
 
   const file = selectedFile ? files[selectedFile] : null;
 
@@ -57,7 +60,11 @@ export function ApprovalPanel() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => approveFile(selectedFile)}
+            onClick={() => {
+              const filename = selectedFile.split("/").pop() ?? selectedFile;
+              approveFile(selectedFile);
+              addToast(`${filename} approved`);
+            }}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md text-white bg-badge-approved hover:bg-badge-approved/80 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-badge-approved/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             <svg
@@ -75,7 +82,11 @@ export function ApprovalPanel() {
             Approve
           </button>
           <button
-            onClick={() => rejectFile(selectedFile)}
+            onClick={() => {
+              const filename = selectedFile.split("/").pop() ?? selectedFile;
+              rejectFile(selectedFile);
+              addToast(`${filename} rejected`, "error");
+            }}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <svg

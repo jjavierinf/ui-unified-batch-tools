@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DarkModeInit } from "@/components/DarkModeInit";
+import { ToastContainer } from "@/components/ToastContainer";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className={`${geistMono.variable} font-mono h-full antialiased`}>
         <DarkModeInit />
         {children}
+        <ToastContainer />
       </body>
     </html>
   );
