@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditorStore } from "@/lib/store";
+import { useToastStore } from "@/lib/toast-store";
 
 export function EditorActionButtons() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
@@ -8,6 +9,8 @@ export function EditorActionButtons() {
   const environment = useEditorStore((s) => s.environment);
   const submitFile = useEditorStore((s) => s.submitFile);
   const saveFile = useEditorStore((s) => s.saveFile);
+
+  const addToast = useToastStore((s) => s.addToast);
 
   const file = selectedFile ? files[selectedFile] : null;
   const isModified = file ? file.content !== file.savedContent : false;
@@ -19,12 +22,17 @@ export function EditorActionButtons() {
   const handleSubmit = () => {
     if (selectedFile && canSubmit) {
       submitFile(selectedFile);
+      const filename = selectedFile.split("/").pop() ?? selectedFile;
+      const target = environment === "dev" ? "Dev" : "Prod";
+      addToast(`${filename} submitted to ${target}`);
     }
   };
 
   const handleSave = () => {
     if (selectedFile && isModified) {
       saveFile(selectedFile);
+      const filename = selectedFile.split("/").pop() ?? selectedFile;
+      addToast(`${filename} saved`);
     }
   };
 
