@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { usePipelineStore } from "@/lib/pipeline-store";
-import { describeCron } from "@/lib/cron-utils";
+import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import type { DagConfig } from "@/lib/types";
 
 const typeBadge: Record<string, string> = {
@@ -137,6 +137,7 @@ export function PipelineOverview() {
                       .replace(`${dag.integrationName}_`, "");
                     const count = taskCountFor(dag.dagName);
                     const schedule = describeCron(dag.schedule);
+                    const nextMins = nextRunMinutes(dag.schedule);
 
                     return (
                       <button
@@ -157,7 +158,12 @@ export function PipelineOverview() {
                           </span>
                         </span>
                         <span className="text-xs text-text-secondary" title={dag.schedule}>
-                          {schedule}
+                          <span>{schedule}</span>
+                          {nextMins !== null && (
+                            <span className="block text-[10px] text-text-tertiary">
+                              in {formatNextRun(nextMins)}
+                            </span>
+                          )}
                         </span>
                         <span className="text-xs text-text-tertiary text-right tabular-nums">
                           {count}

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { getTasksForPipeline } from "@/lib/pipeline-mock-data";
-import { describeCron } from "@/lib/cron-utils";
+import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { PipelineTaskCard } from "./PipelineTaskCard";
 import { CronInput } from "./CronInput";
 import { TagEditor } from "./TagEditor";
@@ -95,6 +95,18 @@ export function PipelineDetail() {
               <span className="text-xs text-text-tertiary">
                 {pipelineTasks.length} tasks
               </span>
+              {(() => {
+                const mins = nextRunMinutes(config.schedule);
+                if (mins === null) return null;
+                return (
+                  <>
+                    <span className="text-text-tertiary">&middot;</span>
+                    <span className="text-xs text-accent">
+                      Next in {formatNextRun(mins)}
+                    </span>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
