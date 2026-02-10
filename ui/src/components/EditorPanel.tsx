@@ -11,6 +11,8 @@ export function EditorPanel() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
   const environment = useEditorStore((s) => s.environment);
+  const diffCollapsed = useEditorStore((s) => s.diffCollapsed);
+  const toggleDiffPanel = useEditorStore((s) => s.toggleDiffPanel);
 
   const file = selectedFile ? files[selectedFile] : null;
   const isModified = file ? file.content !== file.savedContent : false;
@@ -95,16 +97,34 @@ export function EditorPanel() {
           <EditorActionButtons />
         </div>
 
-        {/* Diff / Approval area ~30% */}
+        {/* Diff / Approval area */}
         <div
           className="border-t border-sidebar-border flex flex-col min-h-0"
-          style={{ flex: 3 }}
+          style={{ flex: showApproval ? 3 : diffCollapsed ? 0 : 3 }}
         >
           {showApproval ? (
             <ApprovalPanel />
           ) : (
             <>
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-surface border-b border-sidebar-border">
+              <button
+                onClick={toggleDiffPanel}
+                className="flex items-center gap-2 px-4 py-1.5 bg-surface border-b border-sidebar-border cursor-pointer hover:bg-surface-hover transition-colors w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50"
+              >
+                <span
+                  className={`transition-transform duration-150 inline-flex items-center justify-center w-3 ${
+                    diffCollapsed ? "" : "rotate-90"
+                  }`}
+                >
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 8 8"
+                    fill="currentColor"
+                    className="text-text-tertiary"
+                  >
+                    <path d="M2 1l4 3-4 3z" />
+                  </svg>
+                </span>
                 <svg
                   width="12"
                   height="12"
@@ -125,29 +145,31 @@ export function EditorPanel() {
                 {isModified && (
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                 )}
-              </div>
-              <div className="flex-1 min-h-0">
-                {isModified ? (
-                  <SqlDiffViewer />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mb-2 opacity-40"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <p className="text-xs">No changes to display</p>
-                  </div>
-                )}
-              </div>
+              </button>
+              {!diffCollapsed && (
+                <div className="flex-1 min-h-0">
+                  {isModified ? (
+                    <SqlDiffViewer />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mb-2 opacity-40"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <p className="text-xs">No changes to display</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
