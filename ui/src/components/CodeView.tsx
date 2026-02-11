@@ -13,9 +13,19 @@ import {
 } from "@/lib/sql-explorer-mock";
 
 export function CodeView() {
-  const [connectionId, setConnectionId] = useState(MOCK_CONNECTIONS[0]?.id ?? "");
-  const [expandedDbs, setExpandedDbs] = useState<Set<string>>(new Set());
-  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+  const initialConnection = MOCK_CONNECTIONS[0] ?? null;
+  const [connectionId, setConnectionId] = useState(initialConnection?.id ?? "");
+  const [expandedDbs, setExpandedDbs] = useState<Set<string>>(
+    () => new Set(initialConnection?.databases.map((db) => db.name) ?? [])
+  );
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(
+    () =>
+      new Set(
+        initialConnection?.databases.flatMap((db) =>
+          db.schemas.map((schema) => `${db.name}.${schema.name}`)
+        ) ?? []
+      )
+  );
   const [activeTable, setActiveTable] = useState<MockTable | null>(null);
   const [query, setQuery] = useState("SELECT table_catalog, table_schema, table_name FROM information_schema.tables ORDER BY 1,2,3;");
   const [result, setResult] = useState(() => ({
@@ -28,6 +38,20 @@ export function CodeView() {
     () => MOCK_CONNECTIONS.find((c) => c.id === connectionId) ?? null,
     [connectionId]
   );
+
+  const handleConnectionChange = (nextId: string) => {
+    setConnectionId(nextId);
+    const nextConnection = MOCK_CONNECTIONS.find((c) => c.id === nextId);
+    if (!nextConnection) return;
+    setExpandedDbs(new Set(nextConnection.databases.map((db) => db.name)));
+    setExpandedSchemas(
+      new Set(
+        nextConnection.databases.flatMap((db) =>
+          db.schemas.map((schema) => `${db.name}.${schema.name}`)
+        )
+      )
+    );
+  };
 
   const runQuery = () => {
     if (!connection) return;
@@ -74,7 +98,7 @@ export function CodeView() {
           <label className="block text-[10px] text-text-tertiary mb-1">Connection</label>
           <select
             value={connectionId}
-            onChange={(e) => setConnectionId(e.target.value)}
+            onChange={(e) => handleConnectionChange(e.target.value)}
             className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs"
           >
             {MOCK_CONNECTIONS.map((c) => (

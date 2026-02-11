@@ -15,6 +15,7 @@ export function Sidebar() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const selectedFolder = useEditorStore((s) => s.selectedFolder);
   const expandedFolders = useEditorStore((s) => s.expandedFolders);
+  const setExpandedFolders = useEditorStore((s) => s.setExpandedFolders);
   const createFile = useEditorStore((s) => s.createFile);
   const tasks = usePipelineStore((s) => s.tasks);
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
@@ -32,14 +33,44 @@ export function Sidebar() {
 
   const fileCount = allPaths.length;
 
+  useEffect(() => {
+    // First visit in Pro mode: expand known folders so users immediately see stage/task files.
+    if (expandedFolders.size > 0 || allPaths.length === 0) return;
+    const defaults = new Set<string>();
+    for (const path of allPaths) {
+      const parts = path.split("/");
+      for (let i = 1; i < parts.length; i += 1) {
+        defaults.add(parts.slice(0, i).join("/"));
+      }
+    }
+    if (defaults.size > 0) {
+      setExpandedFolders(defaults);
+    }
+  }, [allPaths, expandedFolders.size, setExpandedFolders]);
+
   // Find pipeline context for the currently selected file
   const pipelineDagName = useMemo(() => {
     if (!selectedFile) return null;
     const task = tasks.find((t) => t.sqlFilePath === selectedFile);
-    if (!task) return null;
-    const config = dagConfigs.find((d) => d.dagName === task.dagName);
-    return config ? config.dagName : null;
-  }, [selectedFile, tasks, dagConfigs]);
+    if (task) {
+      const config = dagConfigs.find((d) => d.dagName === task.dagName);
+      if (config) return config.dagName;
+    }
+
+    if (!selectedFolder) return null;
+    const parts = selectedFolder.split("/").filter(Boolean);
+    if (parts.length < 3 || parts[0] !== "dags") return null;
+    const integration = parts[1];
+    const folderName = parts[2];
+
+    const fromFolder = dagConfigs.find(
+      (d) =>
+        d.integrationName === integration &&
+        d.dagName.toLowerCase().includes(`_${folderName.toLowerCase()}`)
+    );
+
+    return fromFolder?.dagName ?? null;
+  }, [selectedFile, selectedFolder, tasks, dagConfigs]);
 
   useEffect(() => {
     if (isCreating && inputRef.current) {

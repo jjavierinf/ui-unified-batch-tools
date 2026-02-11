@@ -18,6 +18,7 @@ interface EditorStore {
   updateContent: (path: string, content: string) => void;
   saveFile: (path: string) => void;
   toggleFolder: (path: string) => void;
+  setExpandedFolders: (folders: Set<string>) => void;
   setSidebarWidth: (width: number) => void;
   toggleDarkMode: () => void;
   toggleDiffPanel: () => void;
@@ -87,6 +88,9 @@ export const useEditorStore = create<EditorStore>()(
           else next.add(path);
           return { expandedFolders: next };
         }),
+
+      setExpandedFolders: (folders) =>
+        set({ expandedFolders: new Set(folders) }),
 
       setSidebarWidth: (width) =>
         set({ sidebarWidth: width }),

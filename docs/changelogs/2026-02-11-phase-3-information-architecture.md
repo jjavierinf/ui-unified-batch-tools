@@ -18,6 +18,7 @@ Alcance implementado:
   - árbol `database -> schema -> table`
   - query runner SQL
   - resultados tabulares
+- El árbol de DB/schemas arranca expandido por default para ver rápido el contexto técnico.
 - El runner soporta contrato mock orientado a `information_schema.tables` / `information_schema.columns`.
 - También permite `SELECT * FROM schema.table` con resultados mock de muestra.
 
@@ -28,6 +29,7 @@ Alcance implementado:
   - `Pro`: editor de archivos SQL completo (file tree + edición + diff/git flow), equivalente al SQL editor anterior.
 - `Quick Open` ahora abre archivo en `Pipelines -> Pro` para mantener el flujo de edición.
 - Desde el slide-out de tareas en `Simple`, el CTA ahora abre explícitamente `Pipelines -> Pro` (`Open in Pro Editor`) para mantener continuidad de edición con tree/diff/git.
+- En `Pipelines -> Pro`, el file tree arranca expandido (si no había preferencia persistida) para mostrar stages/tasks sin clicks extra.
 
 ## Evidencia visual
 
@@ -46,6 +48,13 @@ Qué mirar:
 - Tab de submodo con `Simple` activo.
 - Se muestra el board de pipelines (search + grupos + filas de pipeline).
 - El detalle/orden de tareas se mantiene disponible desde este submodo.
+
+### Simple click evidence (dark)
+![Phase 3 Simple pipeline detail dark](../screenshots/phase3-simple-pipeline-detail-dark.png)
+
+Qué mirar:
+- Se confirma el paso `overview -> detail` al clickear un pipeline del board.
+- Se ve `Task order` y configuración DAG en el panel derecho, evidenciando cambio de estado.
 
 ### Pipelines Pro (dark)
 ![Phase 3 Pipelines Pro dark](../screenshots/phase3-pipelines-pro-dark.png)
