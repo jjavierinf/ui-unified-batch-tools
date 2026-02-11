@@ -1,5 +1,10 @@
 import { PipelineStage } from "./types";
 
+const TRANSPARENT_DDL_FILES = new Set([
+  "create_table_stage.sql",
+  "create_table_data_model.sql",
+]);
+
 export function getStageFromPath(path: string): PipelineStage {
   if (path.includes("/extract/")) return "extract";
   if (path.includes("/transform/")) return "transform";
@@ -19,4 +24,10 @@ export function isDdlTask(taskName: string, path: string): boolean {
 
 export function isDdlPath(path: string): boolean {
   return path.includes("/ddl/");
+}
+
+export function isTransparentSystemDdlPath(path: string): boolean {
+  if (!path.includes("/ddl/")) return false;
+  const name = path.split("/").pop() ?? "";
+  return TRANSPARENT_DDL_FILES.has(name);
 }

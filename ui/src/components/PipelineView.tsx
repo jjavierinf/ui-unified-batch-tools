@@ -2,7 +2,7 @@
 
 import { useWorkspaceStore } from "@/lib/workspace-store";
 import { PipelineBoard } from "./pipeline/PipelineBoard";
-import { PipelineSimpleView } from "./pipeline/PipelineSimpleView";
+import { SqlFileWorkbench } from "./SqlFileWorkbench";
 
 export function PipelineView() {
   const pipelineSubMode = useWorkspaceStore((s) => s.pipelineSubMode);
@@ -38,7 +38,7 @@ export function PipelineView() {
         </span>
       </div>
 
-      {pipelineSubMode === "simple" ? <PipelineSimpleView /> : <PipelineBoard />}
+      {pipelineSubMode === "simple" ? <PipelineBoard /> : <SqlFileWorkbench />}
     </div>
   );
 }

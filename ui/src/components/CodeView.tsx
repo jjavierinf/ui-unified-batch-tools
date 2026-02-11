@@ -1,78 +1,213 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useEditorStore } from "@/lib/store";
-import { Sidebar } from "./Sidebar";
-import { EditorPanel } from "./EditorPanel";
-
-const MIN_SIDEBAR_WIDTH = 220;
-const MAX_SIDEBAR_WIDTH = 560;
+import { useMemo, useState } from "react";
+import {
+  MOCK_CONNECTIONS,
+  MockConnection,
+  MockDatabase,
+  MockSchema,
+  MockTable,
+  buildInfoSchemaColumnsQuery,
+  buildInfoSchemaTablesQuery,
+  executeMockQuery,
+} from "@/lib/sql-explorer-mock";
 
 export function CodeView() {
-  const sidebarWidth = useEditorStore((s) => s.sidebarWidth);
-  const setSidebarWidth = useEditorStore((s) => s.setSidebarWidth);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isResizingRef = useRef(false);
+  const [connectionId, setConnectionId] = useState(MOCK_CONNECTIONS[0]?.id ?? "");
+  const [expandedDbs, setExpandedDbs] = useState<Set<string>>(new Set());
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+  const [activeTable, setActiveTable] = useState<MockTable | null>(null);
+  const [query, setQuery] = useState("SELECT table_catalog, table_schema, table_name FROM information_schema.tables ORDER BY 1,2,3;");
+  const [result, setResult] = useState(() => ({
+    columns: [] as string[],
+    rows: [] as Array<Record<string, string | number>>,
+    notice: "Ready",
+  }));
 
-  useEffect(() => {
-    const onPointerMove = (event: PointerEvent) => {
-      if (!isResizingRef.current || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextWidth = Math.min(
-        MAX_SIDEBAR_WIDTH,
-        Math.max(MIN_SIDEBAR_WIDTH, event.clientX - rect.left)
-      );
-      setSidebarWidth(nextWidth);
-    };
+  const connection = useMemo<MockConnection | null>(
+    () => MOCK_CONNECTIONS.find((c) => c.id === connectionId) ?? null,
+    [connectionId]
+  );
 
-    const stopResizing = () => {
-      if (!isResizingRef.current) return;
-      isResizingRef.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
+  const runQuery = () => {
+    if (!connection) return;
+    setResult(executeMockQuery(connection, query));
+  };
 
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", stopResizing);
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", stopResizing);
-    };
-  }, [setSidebarWidth]);
+  const toggleDb = (dbName: string) => {
+    setExpandedDbs((prev) => {
+      const next = new Set(prev);
+      if (next.has(dbName)) next.delete(dbName);
+      else next.add(dbName);
+      return next;
+    });
+  };
 
-  const startResizing = () => {
-    isResizingRef.current = true;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
+  const toggleSchema = (database: string, schema: string) => {
+    const key = `${database}.${schema}`;
+    setExpandedSchemas((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const openSchemaTablesQuery = (db: MockDatabase, schema: MockSchema) => {
+    setActiveTable(null);
+    setQuery(buildInfoSchemaTablesQuery(db.name, schema.name));
+  };
+
+  const openTableColumnsQuery = (table: MockTable) => {
+    setActiveTable(table);
+    setQuery(buildInfoSchemaColumnsQuery(table.database, table.schema, table.name));
   };
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col">
-      <div className="px-4 py-1.5 border-b border-sidebar-border bg-surface flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wide text-text-tertiary">
-            SQL Explorer
-          </span>
-          <span className="text-xs text-foreground">Mock Connection: demo_sqlserver_primary</span>
+    <div className="flex flex-1 min-h-0 bg-background">
+      <aside className="w-[310px] shrink-0 border-r border-sidebar-border bg-surface flex flex-col">
+        <div className="px-3 py-2 border-b border-sidebar-border">
+          <p className="text-[10px] uppercase tracking-wide text-text-tertiary">SQL Explorer</p>
+          <p className="text-xs text-foreground mt-0.5">DBeaver-style schema browser (mock)</p>
         </div>
-        <span className="text-[10px] text-text-tertiary">Read/Write scaffold mode</span>
-      </div>
-      <div ref={containerRef} className="flex flex-1 min-h-0">
-        <div
-          className="shrink-0 min-h-0"
-          style={{ width: `${sidebarWidth}px` }}
-        >
-          <Sidebar />
+        <div className="px-3 py-2 border-b border-sidebar-border">
+          <label className="block text-[10px] text-text-tertiary mb-1">Connection</label>
+          <select
+            value={connectionId}
+            onChange={(e) => setConnectionId(e.target.value)}
+            className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs"
+          >
+            {MOCK_CONNECTIONS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {connection && (
+            <p className="text-[10px] text-text-tertiary mt-1">
+              {connection.engine} · {connection.host}
+            </p>
+          )}
         </div>
-        <div
-          className="w-1 shrink-0 cursor-col-resize bg-sidebar-border/30 hover:bg-accent/50 transition-colors"
-          onPointerDown={startResizing}
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-        />
-        <EditorPanel />
-      </div>
+
+        <div className="flex-1 overflow-y-auto px-2 py-2">
+          {connection?.databases.map((db) => (
+            <div key={db.name} className="mb-1">
+              <button
+                onClick={() => toggleDb(db.name)}
+                className="w-full text-left px-2 py-1 text-xs text-foreground hover:bg-surface-hover rounded cursor-pointer"
+              >
+                {expandedDbs.has(db.name) ? "▾" : "▸"} {db.name}
+              </button>
+              {expandedDbs.has(db.name) &&
+                db.schemas.map((schema) => {
+                  const schemaKey = `${db.name}.${schema.name}`;
+                  return (
+                    <div key={schemaKey} className="ml-3">
+                      <button
+                        onClick={() => {
+                          toggleSchema(db.name, schema.name);
+                          openSchemaTablesQuery(db, schema);
+                        }}
+                        className="w-full text-left px-2 py-1 text-xs text-text-secondary hover:bg-surface-hover rounded cursor-pointer"
+                      >
+                        {expandedSchemas.has(schemaKey) ? "▾" : "▸"} {schema.name}
+                      </button>
+                      {expandedSchemas.has(schemaKey) &&
+                        schema.tables.map((table) => {
+                          const key = `${table.database}.${table.schema}.${table.name}`;
+                          const active =
+                            activeTable &&
+                            activeTable.database === table.database &&
+                            activeTable.schema === table.schema &&
+                            activeTable.name === table.name;
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => openTableColumnsQuery(table)}
+                              className={`w-full text-left ml-3 px-2 py-1 text-xs rounded cursor-pointer ${
+                                active
+                                  ? "bg-accent/10 text-accent"
+                                  : "text-text-tertiary hover:bg-surface-hover"
+                              }`}
+                            >
+                              {table.name}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  );
+                })}
+            </div>
+          ))}
+        </div>
+
+        <div className="p-2 border-t border-sidebar-border">
+          <p className="text-[10px] text-text-tertiary">
+            Hint: query `information_schema.tables` / `information_schema.columns`
+          </p>
+        </div>
+      </aside>
+
+      <section className="flex-1 min-w-0 flex flex-col">
+        <div className="px-4 py-2 border-b border-sidebar-border bg-surface flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-foreground">
+              {connection?.name ?? "No connection selected"}
+            </p>
+            <p className="text-[10px] text-text-tertiary">
+              Mock query runner (contract aligned to INFORMATION_SCHEMA)
+            </p>
+          </div>
+          <button
+            onClick={runQuery}
+            className="px-3 py-1.5 text-xs rounded-md bg-accent text-white hover:bg-accent/85 cursor-pointer"
+          >
+            Run query
+          </button>
+        </div>
+
+        <div className="p-3 border-b border-sidebar-border bg-background">
+          <textarea
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            spellCheck={false}
+            className="w-full h-[140px] resize-none rounded-md border border-sidebar-border bg-surface px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+          />
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <div className="px-4 py-2 border-b border-sidebar-border text-[10px] text-text-tertiary">
+            {result.notice}
+          </div>
+          {result.columns.length === 0 ? (
+            <div className="p-4 text-xs text-text-tertiary">Run a query to see results.</div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead className="bg-surface sticky top-0">
+                <tr>
+                  {result.columns.map((c) => (
+                    <th key={c} className="text-left px-3 py-2 border-b border-sidebar-border font-medium text-text-secondary">
+                      {c}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {result.rows.map((row, idx) => (
+                  <tr key={`row-${idx}`} className="border-b border-sidebar-border/60">
+                    {result.columns.map((c) => (
+                      <td key={`${idx}-${c}`} className="px-3 py-2 text-foreground align-top">
+                        {String(row[c] ?? "")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
