@@ -25,6 +25,7 @@ interface EditorStore {
   setEnvironment: (env: Environment) => void;
   createFile: (path: string) => void;
   setFilesStatus: (paths: string[], status: FileStatus) => void;
+  seedFiles: (files: Array<{ path: string; content: string }>) => void;
   submitFile: (path: string) => void;
   pushToDev: () => Promise<{ pushed: number }>;
   pushToProd: () => Promise<{ pushed: number; mockPrId?: string }>;
@@ -142,6 +143,20 @@ export const useEditorStore = create<EditorStore>()(
                   ? now
                   : file.submittedAt,
               approvedAt: status === "approved" ? now : file.approvedAt,
+            };
+          }
+          return { files: nextFiles };
+        }),
+
+      seedFiles: (filesToSeed) =>
+        set((state) => {
+          const nextFiles = { ...state.files };
+          for (const file of filesToSeed) {
+            if (nextFiles[file.path]) continue;
+            nextFiles[file.path] = {
+              content: file.content,
+              savedContent: file.content,
+              status: "saved_local",
             };
           }
           return { files: nextFiles };
