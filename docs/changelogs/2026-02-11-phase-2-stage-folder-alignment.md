@@ -59,4 +59,4 @@ Alcance implementado:
 - `bash scripts/setup-test-repo.sh /tmp/test-pipeline-repo` (ok; estructura stage-first generada).
 
 ## Commit de fase
-- _pendiente_
+- `025286f`
