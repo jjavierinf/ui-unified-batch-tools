@@ -12,9 +12,15 @@ Alcance implementado:
 - Quick Open ahora filtra DDL y al abrir resultado vuelve a modo `code` para mantener flujo consistente.
 
 ## Evidencia visual
-- `docs/screenshots/phase1-folder-selection.png`
-- `docs/screenshots/phase1-resizable-sidebar.png`
-- `docs/screenshots/phase1-quick-open-cross-mode.png`
+
+### Folder selection
+![Folder selection](../screenshots/phase1-folder-selection.png)
+
+### Resizable sidebar
+![Resizable sidebar](../screenshots/phase1-resizable-sidebar.png)
+
+### Quick open cross-mode
+![Quick open cross-mode](../screenshots/phase1-quick-open-cross-mode.png)
 
 ## Límites scaffold
 - Sin integración backend nueva en esta fase.
