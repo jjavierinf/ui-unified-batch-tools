@@ -43,6 +43,7 @@ export function TaskConfigPanel({ task, onUpdateConfig }: TaskConfigPanelProps) 
   const workloadId = useId();
   const sourceId = useId();
   const targetId = useId();
+  const targetTableId = useId();
   const queryTzId = useId();
   const loadTypeId = useId();
   const dqaTypeId = useId();
@@ -60,8 +61,11 @@ export function TaskConfigPanel({ task, onUpdateConfig }: TaskConfigPanelProps) 
   }
 
   const fileName = config.query?.file ?? task.sqlFilePath.split("/").pop() ?? "";
+  const isExtract = task.stage === "extract";
+  const isTransform = task.stage === "transform";
+  const isLoad = task.stage === "load";
   const isDqa = task.stage === "dqa";
-  const isLoad = task.stage === "load" || task.stage === "extract";
+  const showTargetConnection = isExtract || isLoad || isDqa;
   const showLoadTarget = config.loadTarget !== undefined;
   const isEmail = config.loadTarget?.type === "Email";
 
@@ -110,30 +114,44 @@ export function TaskConfigPanel({ task, onUpdateConfig }: TaskConfigPanelProps) 
 
       {expanded && (
         <div className="mt-2 pl-3 border-l-2 border-sidebar-border space-y-3">
-          {/* Workload */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <FieldLabel htmlFor={workloadId}>Expected Workload</FieldLabel>
-              <select
-                id={workloadId}
-                value={config.expectedWorkload ?? "medium"}
-                onChange={(e) =>
-                  update({ expectedWorkload: e.target.value as WorkloadLevel })
-                }
-                className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-
-            {/* Query file (read-only) */}
-            <div>
-              <FieldLabel>Query File</FieldLabel>
-              <div className="border border-sidebar-border rounded-md px-2 py-1.5 bg-surface text-text-secondary text-xs font-mono truncate">
-                {fileName}
+          {/* Stage-specific extract fields */}
+          {isExtract && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel htmlFor={workloadId}>Expected Workload</FieldLabel>
+                <select
+                  id={workloadId}
+                  value={config.expectedWorkload ?? "medium"}
+                  onChange={(e) =>
+                    update({ expectedWorkload: e.target.value as WorkloadLevel })
+                  }
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
               </div>
+              <div>
+                <FieldLabel htmlFor={targetTableId}>Target Table Name</FieldLabel>
+                <input
+                  id={targetTableId}
+                  type="text"
+                  value={config.targetTableName ?? ""}
+                  onChange={(e) => update({ targetTableName: e.target.value })}
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                  placeholder="Optional override"
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Query file (read-only) */}
+          <div>
+            <FieldLabel>Query File</FieldLabel>
+            <div className="border border-sidebar-border rounded-md px-2 py-1.5 bg-surface text-text-secondary text-xs font-mono truncate">
+              {fileName}
             </div>
           </div>
 
@@ -159,25 +177,27 @@ export function TaskConfigPanel({ task, onUpdateConfig }: TaskConfigPanelProps) 
                 spellCheck={false}
               />
             </div>
-            <div>
-              <FieldLabel htmlFor={targetId}>Target Connection</FieldLabel>
-              <input
-                id={targetId}
-                type="text"
-                value={config.connection?.target ?? ""}
-                onChange={(e) =>
-                  update({
-                    connection: {
-                      source: config.connection?.source ?? "",
-                      target: e.target.value || undefined,
-                    },
-                  })
-                }
-                className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
-                placeholder="e.g. starrocks_conn"
-                spellCheck={false}
-              />
-            </div>
+            {showTargetConnection && (
+              <div>
+                <FieldLabel htmlFor={targetId}>Target Connection</FieldLabel>
+                <input
+                  id={targetId}
+                  type="text"
+                  value={config.connection?.target ?? ""}
+                  onChange={(e) =>
+                    update({
+                      connection: {
+                        source: config.connection?.source ?? "",
+                        target: e.target.value || undefined,
+                      },
+                    })
+                  }
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                  placeholder="e.g. starrocks_conn"
+                  spellCheck={false}
+                />
+              </div>
+            )}
           </div>
 
           {/* Query timezone */}
@@ -429,6 +449,12 @@ export function TaskConfigPanel({ task, onUpdateConfig }: TaskConfigPanelProps) 
               </div>
             </div>
           )}
+
+          <div className="pt-1">
+            <span className="text-[10px] text-text-tertiary">
+              Stage: {isExtract ? "extract" : isTransform ? "transform" : isLoad ? "load" : "dqa"} · Task type: {task.taskType}
+            </span>
+          </div>
         </div>
       )}
     </div>
