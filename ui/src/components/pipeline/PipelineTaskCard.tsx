@@ -2,6 +2,8 @@
 
 import { Draggable } from "@hello-pangea/dnd";
 import type { PipelineTask, PipelineStage } from "@/lib/types";
+import { usePipelineStore } from "@/lib/pipeline-store";
+import { TaskConfigPanel } from "./TaskConfigPanel";
 
 const stageBorderColors: Record<PipelineStage, string> = {
   extract: "border-l-blue-500",
@@ -29,9 +31,11 @@ interface PipelineTaskCardProps {
   task: PipelineTask;
   index: number;
   isLast: boolean;
+  onClick?: () => void;
 }
 
-export function PipelineTaskCard({ task, index, isLast }: PipelineTaskCardProps) {
+export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskCardProps) {
+  const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
   const fileName = task.sqlFilePath.split("/").pop() ?? task.sqlFilePath;
 
   return (
@@ -89,7 +93,22 @@ export function PipelineTaskCard({ task, index, isLast }: PipelineTaskCardProps)
               </div>
 
               {/* Content */}
-              <div className="flex-1 py-2.5 pr-3 min-w-0">
+              <div
+                className="flex-1 py-2.5 pr-3 min-w-0 cursor-pointer"
+                onClick={onClick}
+                role={onClick ? "button" : undefined}
+                tabIndex={onClick ? 0 : undefined}
+                onKeyDown={
+                  onClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onClick();
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-text-tertiary bg-surface-hover px-1.5 py-0.5 rounded">
                     #{index + 1}
@@ -106,6 +125,12 @@ export function PipelineTaskCard({ task, index, isLast }: PipelineTaskCardProps)
                 <p className="text-xs text-text-tertiary mt-1 truncate pl-0.5">
                   {fileName}
                 </p>
+                {task.taskConfig && (
+                  <TaskConfigPanel
+                    task={task}
+                    onUpdateConfig={updateTaskConfig}
+                  />
+                )}
               </div>
             </div>
           </div>

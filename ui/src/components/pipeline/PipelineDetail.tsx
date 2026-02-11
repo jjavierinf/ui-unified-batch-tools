@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { usePipelineStore } from "@/lib/pipeline-store";
-import { getTasksForPipeline } from "@/lib/pipeline-mock-data";
+import { useEditorStore } from "@/lib/store";
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { PipelineTaskCard } from "./PipelineTaskCard";
-import { CronInput } from "./CronInput";
-import { TagEditor } from "./TagEditor";
+import { DagConfigEditor } from "./DagConfigEditor";
+import { SqlEditorSlideOut } from "./SqlEditorSlideOut";
 
 const typeBadge: Record<string, string> = {
   snapshot: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -24,13 +26,22 @@ export function PipelineDetail() {
   const updateDagSchedule = usePipelineStore((s) => s.updateDagSchedule);
   const addDagTag = usePipelineStore((s) => s.addDagTag);
   const removeDagTag = usePipelineStore((s) => s.removeDagTag);
+  const updateDagField = usePipelineStore((s) => s.updateDagField);
+
+  const selectFile = useEditorStore((s) => s.selectFile);
+  const createFile = useEditorStore((s) => s.createFile);
+  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
+
+  const [slideOutFile, setSlideOutFile] = useState<string | null>(null);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskName, setNewTaskName] = useState("");
 
   const config = selectedPipeline
     ? dagConfigs.find((d) => d.dagName === selectedPipeline)
     : null;
 
   const pipelineTasks = selectedPipeline
-    ? getTasksForPipeline(tasks, selectedPipeline)
+    ? getNonDdlTasksForPipeline(tasks, selectedPipeline)
     : [];
 
   const allTags = useMemo(
@@ -83,7 +94,7 @@ export function PipelineDetail() {
                 {config.dagType}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-xs text-text-tertiary">
                 {config.integrationName}
               </span>
@@ -95,6 +106,22 @@ export function PipelineDetail() {
               <span className="text-xs text-text-tertiary">
                 {pipelineTasks.length} tasks
               </span>
+              {config.owner && (
+                <>
+                  <span className="text-text-tertiary">&middot;</span>
+                  <span className="text-xs text-text-tertiary">
+                    owner: {config.owner}
+                  </span>
+                </>
+              )}
+              {config.timezone && (
+                <>
+                  <span className="text-text-tertiary">&middot;</span>
+                  <span className="text-xs text-text-tertiary">
+                    {config.timezone}
+                  </span>
+                </>
+              )}
               {(() => {
                 const mins = nextRunMinutes(config.schedule);
                 if (mins === null) return null;
@@ -112,57 +139,33 @@ export function PipelineDetail() {
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Config section */}
-        <div className="px-5 py-4 border-b border-sidebar-border bg-surface/50">
-          <div className="flex items-center gap-2 mb-3">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-text-tertiary"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wide">
-              Configuration
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-            <CronInput
-              value={config.schedule}
-              onChange={(v) => updateDagSchedule(config.dagName, v)}
-            />
-            <TagEditor
-              tags={config.tags}
-              onAdd={(tag) => addDagTag(config.dagName, tag)}
-              onRemove={(tag) => removeDagTag(config.dagName, tag)}
-              allTags={allTags}
-            />
-          </div>
-        </div>
-
-        {/* Task list */}
-        <div className="px-5 py-4">
+      {/* Two-column content */}
+      <div className="flex-1 min-h-0 flex">
+        {/* Left: Task list */}
+        <div className="flex-1 min-w-0 overflow-y-auto px-5 py-4 border-r border-sidebar-border">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs uppercase tracking-wider text-text-tertiary font-medium">
               Task order ({pipelineTasks.length})
             </h3>
-            <span className="text-[10px] text-text-tertiary flex items-center gap-1">
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-60">
-                <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
-                <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
-                <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
-              </svg>
-              Drag to reorder
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="opacity-60">
+                  <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
+                  <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
+                  <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
+                </svg>
+                Drag to reorder
+              </span>
+              <button
+                onClick={() => setShowAddTask(true)}
+                className="text-[10px] text-accent hover:text-accent/80 flex items-center gap-1 cursor-pointer"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add task
+              </button>
+            </div>
           </div>
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="task-list">
@@ -170,7 +173,7 @@ export function PipelineDetail() {
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`max-w-3xl min-h-[100px] transition-colors rounded-lg ${
+                  className={`min-h-[100px] transition-colors rounded-lg ${
                     snapshot.isDraggingOver ? "bg-surface-hover" : ""
                   }`}
                 >
@@ -180,6 +183,7 @@ export function PipelineDetail() {
                       task={task}
                       index={index}
                       isLast={index === pipelineTasks.length - 1}
+                      onClick={() => setSlideOutFile(task.sqlFilePath)}
                     />
                   ))}
                   {provided.placeholder}
@@ -187,8 +191,77 @@ export function PipelineDetail() {
               )}
             </Droppable>
           </DragDropContext>
+
+          {showAddTask && config && (
+            <div className="mt-3 p-3 rounded-lg border border-sidebar-border bg-surface/50">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  autoFocus
+                  value={newTaskName}
+                  onChange={(e) => setNewTaskName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newTaskName.trim()) {
+                      const name = newTaskName.trim().endsWith(".sql")
+                        ? newTaskName.trim()
+                        : `${newTaskName.trim()}.sql`;
+                      const dagFolder = config.dagName.replace(/^dag_/, "").split("_").slice(0, 2).join("/");
+                      const path = `dags/${dagFolder}/sql_files/transformations/${name}`;
+                      createFile(path);
+                      setSlideOutFile(path);
+                      setShowAddTask(false);
+                      setNewTaskName("");
+                    } else if (e.key === "Escape") {
+                      setShowAddTask(false);
+                      setNewTaskName("");
+                    }
+                  }}
+                  placeholder="new_task_name.sql"
+                  className="flex-1 px-2 py-1.5 text-xs bg-background border border-accent rounded text-foreground placeholder:text-text-tertiary outline-none focus:ring-1 focus:ring-accent/50"
+                  spellCheck={false}
+                />
+                <button
+                  onClick={() => {
+                    setShowAddTask(false);
+                    setNewTaskName("");
+                  }}
+                  className="text-xs text-text-tertiary hover:text-foreground cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p className="text-[10px] text-text-tertiary mt-1">
+                Enter to create, Esc to cancel
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Configuration (tabbed) */}
+        <div className="w-[380px] shrink-0 overflow-y-auto bg-surface/50">
+          <DagConfigEditor
+            config={config}
+            onUpdateSchedule={(v) => updateDagSchedule(config.dagName, v)}
+            onAddTag={(tag) => addDagTag(config.dagName, tag)}
+            onRemoveTag={(tag) => removeDagTag(config.dagName, tag)}
+            onUpdateField={(field, value) => updateDagField(config.dagName, field, value)}
+            allTags={allTags}
+          />
         </div>
       </div>
+
+      {/* SQL Editor Slide-out */}
+      {slideOutFile && (
+        <SqlEditorSlideOut
+          filePath={slideOutFile}
+          onClose={() => setSlideOutFile(null)}
+          onOpenInCodeMode={() => {
+            selectFile(slideOutFile);
+            setViewMode("code");
+            setSlideOutFile(null);
+          }}
+        />
+      )}
     </div>
   );
 }

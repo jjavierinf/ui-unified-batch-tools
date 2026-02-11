@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { PipelineTask, DagConfig } from "./types";
+import { PipelineTask, DagConfig, TaskConfig } from "./types";
 import { initialPipelineTasks } from "./pipeline-mock-data";
 import { dagConfigs as initialDagConfigs } from "./mock-data";
 
@@ -15,6 +15,8 @@ interface PipelineStore {
   updateDagTags: (dagName: string, tags: string[]) => void;
   addDagTag: (dagName: string, tag: string) => void;
   removeDagTag: (dagName: string, tag: string) => void;
+  updateDagField: (dagName: string, field: string, value: string) => void;
+  updateTaskConfig: (taskId: string, config: TaskConfig) => void;
   resetToDefaults: () => void;
 }
 
@@ -70,6 +72,20 @@ export const usePipelineStore = create<PipelineStore>()(
             d.dagName === dagName
               ? { ...d, tags: d.tags.filter((t) => t !== tag) }
               : d
+          ),
+        })),
+
+      updateDagField: (dagName, field, value) =>
+        set((state) => ({
+          dagConfigs: state.dagConfigs.map((d) =>
+            d.dagName === dagName ? { ...d, [field]: value } : d
+          ),
+        })),
+
+      updateTaskConfig: (taskId, config) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId ? { ...t, taskConfig: { ...t.taskConfig, ...config } } : t
           ),
         })),
 

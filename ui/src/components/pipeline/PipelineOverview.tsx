@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
+import { isDdlTask } from "@/lib/task-type-utils";
 import type { DagConfig } from "@/lib/types";
 
 const typeBadge: Record<string, string> = {
@@ -30,13 +31,14 @@ export function PipelineOverview() {
   const grouped = useMemo(() => {
     const groups: Record<string, DagConfig[]> = {};
     for (const dag of filtered) {
-      (groups[dag.integrationName] ??= []).push(dag);
+      const groupKey = dag.tags[0] ?? dag.integrationName;
+      (groups[groupKey] ??= []).push(dag);
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
   const taskCountFor = (dagName: string) =>
-    tasks.filter((t) => t.dagName === dagName).length;
+    tasks.filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath)).length;
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-background">

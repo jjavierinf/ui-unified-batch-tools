@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { WorkspaceShell } from "@/components/WorkspaceShell";
 
 export default function Home() {
-  redirect("/editor");
+  return <WorkspaceShell />;
 }
