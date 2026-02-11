@@ -2,8 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { usePipelineStore } from "@/lib/pipeline-store";
+import { useEditorStore } from "@/lib/store";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { isDdlTask } from "@/lib/task-type-utils";
+import { getPipelineStatus } from "@/lib/pipeline-status";
+import { StatusBadge } from "@/components/StatusBadge";
 import type { DagConfig } from "@/lib/types";
 
 const typeBadge: Record<string, string> = {
@@ -14,8 +17,10 @@ const typeBadge: Record<string, string> = {
 export function PipelineOverview() {
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
   const tasks = usePipelineStore((s) => s.tasks);
+  const files = useEditorStore((s) => s.files);
   const selectPipeline = usePipelineStore((s) => s.selectPipeline);
   const [search, setSearch] = useState("");
+  const [groupBy, setGroupBy] = useState<"tag" | "integration">("tag");
 
   const filtered = useMemo(() => {
     if (!search.trim()) return dagConfigs;
@@ -31,11 +36,12 @@ export function PipelineOverview() {
   const grouped = useMemo(() => {
     const groups: Record<string, DagConfig[]> = {};
     for (const dag of filtered) {
-      const groupKey = dag.tags[0] ?? dag.integrationName;
+      const groupKey =
+        groupBy === "tag" ? dag.tags[0] ?? dag.integrationName : dag.integrationName;
       (groups[groupKey] ??= []).push(dag);
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  }, [filtered, groupBy]);
 
   const taskCountFor = (dagName: string) =>
     tasks.filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath)).length;
@@ -79,6 +85,28 @@ export function PipelineOverview() {
           <span className="text-xs text-text-tertiary whitespace-nowrap">
             {filtered.length} of {dagConfigs.length} DAGs
           </span>
+          <div className="inline-flex rounded-md border border-sidebar-border overflow-hidden">
+            <button
+              onClick={() => setGroupBy("tag")}
+              className={`px-2 py-1 text-[10px] cursor-pointer ${
+                groupBy === "tag"
+                  ? "bg-accent text-white"
+                  : "text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              by tag
+            </button>
+            <button
+              onClick={() => setGroupBy("integration")}
+              className={`px-2 py-1 text-[10px] cursor-pointer ${
+                groupBy === "integration"
+                  ? "bg-accent text-white"
+                  : "text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              by integration
+            </button>
+          </div>
         </div>
       </div>
 
@@ -123,11 +151,12 @@ export function PipelineOverview() {
 
                 {/* Table header */}
                 <div className="bg-surface border border-sidebar-border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-[1fr_90px_140px_60px_auto_28px] gap-2 px-4 py-1.5 border-b border-sidebar-border text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
+                  <div className="grid grid-cols-[1fr_90px_140px_60px_80px_auto_28px] gap-2 px-4 py-1.5 border-b border-sidebar-border text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
                     <span>Pipeline</span>
                     <span>Type</span>
                     <span>Schedule</span>
                     <span className="text-right">Tasks</span>
+                    <span>Status</span>
                     <span>Tags</span>
                     <span></span>
                   </div>
@@ -145,7 +174,7 @@ export function PipelineOverview() {
                       <button
                         key={dag.dagName}
                         onClick={() => selectPipeline(dag.dagName)}
-                        className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
+                        className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_80px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                           i % 2 === 1 ? "bg-surface-hover/30" : ""
                         }`}
                       >
@@ -169,6 +198,9 @@ export function PipelineOverview() {
                         </span>
                         <span className="text-xs text-text-tertiary text-right tabular-nums">
                           {count}
+                        </span>
+                        <span>
+                          <StatusBadge status={getPipelineStatus(files, tasks, dag.dagName)} />
                         </span>
                         <div className="flex gap-1 overflow-hidden">
                           {dag.tags
