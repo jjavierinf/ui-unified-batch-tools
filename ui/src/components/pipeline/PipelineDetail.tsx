@@ -7,9 +7,11 @@ import { useEditorStore } from "@/lib/store";
 import { useWorkspaceStore } from "@/lib/workspace-store";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
+import { getPipelineStatus } from "@/lib/pipeline-status";
 import { PipelineTaskCard } from "./PipelineTaskCard";
 import { DagConfigEditor } from "./DagConfigEditor";
 import { SqlEditorSlideOut } from "./SqlEditorSlideOut";
+import { StatusBadge } from "@/components/StatusBadge";
 
 const typeBadge: Record<string, string> = {
   snapshot: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -30,6 +32,7 @@ export function PipelineDetail() {
 
   const selectFile = useEditorStore((s) => s.selectFile);
   const createFile = useEditorStore((s) => s.createFile);
+  const files = useEditorStore((s) => s.files);
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
 
   const [slideOutFile, setSlideOutFile] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export function PipelineDetail() {
               <h2 className="text-sm font-semibold text-foreground truncate">
                 {displayName}
               </h2>
+              <StatusBadge status={getPipelineStatus(files, tasks, config.dagName)} />
               <span
                 className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${typeBadge[config.dagType] ?? "bg-gray-100 text-gray-700"}`}
               >
