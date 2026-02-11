@@ -45,7 +45,14 @@ PROPERTIES(
 );`
   ),
 
-  "dags/CRM_integration/AccountReference/sql_files/transformations/data_model_task.sql": f(
+  "dags/CRM_integration/AccountReference/sql_files/extract/data_model_task.sql": f(
+`SELECT *
+FROM Accounts_dbo_AccountReference
+WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 HOUR)
+;`
+  ),
+
+  "dags/CRM_integration/AccountReference/sql_files/transform/data_model_task.sql": f(
 `TRUNCATE TABLE db_data_model.Accounts_dbo_AccountReference
 ;
 
@@ -68,7 +75,7 @@ ORDER BY
 ;`
   ),
 
-  "dags/CRM_integration/AccountReference/sql_files/transformations/delete_logs.sql": f(
+  "dags/CRM_integration/AccountReference/sql_files/dqa/delete_logs.sql": f(
 `DELETE FROM db_stage.Accounts_dbo_AccountReference
 WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 3 MONTH)
 ;`
@@ -142,7 +149,14 @@ PROPERTIES(
 );`
   ),
 
-  "dags/CRM_integration/Game/sql_files/transformations/data_model_task.sql": f(
+  "dags/CRM_integration/Game/sql_files/extract/data_model_task.sql": f(
+`SELECT *
+FROM gc.Game
+WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
+;`
+  ),
+
+  "dags/CRM_integration/Game/sql_files/transform/data_model_task.sql": f(
 `TRUNCATE TABLE db_data_model.GamingIntegration_gc_Game
 ;
 
@@ -179,7 +193,7 @@ ORDER BY
 ;`
   ),
 
-  "dags/CRM_integration/Game/sql_files/transformations/delete_logs.sql": f(
+  "dags/CRM_integration/Game/sql_files/dqa/delete_logs.sql": f(
 `DELETE FROM db_stage.GamingIntegration_gc_Game
 WHERE
 
@@ -272,7 +286,14 @@ PROPERTIES(
 ;`
   ),
 
-  "dags/CRM_integration/GameTransaction/sql_files/transformations/data_model_task.sql": f(
+  "dags/CRM_integration/GameTransaction/sql_files/extract/data_model_task.sql": f(
+`SELECT *
+FROM tr.GameTransaction
+WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
+;`
+  ),
+
+  "dags/CRM_integration/GameTransaction/sql_files/transform/data_model_task.sql": f(
 `INSERT INTO db_data_model.GamingIntegration_tr_GameTransaction
 SELECT
 \tstage.gameTransactionId,
@@ -309,6 +330,14 @@ WHERE
     stage.saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
 ORDER BY
 \tsaga_real_run_ts ASC
+;`
+  ),
+
+  "dags/CRM_integration/GameTransaction/sql_files/dqa/delete_logs.sql": f(
+`SELECT
+  COUNT(*) AS source_count
+FROM db_stage.GamingIntegration_tr_GameTransaction
+WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
 ;`
   ),
 
@@ -350,7 +379,14 @@ PROPERTIES(
 ;`
   ),
 
-  "dags/BEATS_integration/AccountLogType/sql_files/transformations/data_model_task.sql": f(
+  "dags/BEATS_integration/AccountLogType/sql_files/extract/data_model_task.sql": f(
+`SELECT *
+FROM dbo.AccountLogType
+WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
+;`
+  ),
+
+  "dags/BEATS_integration/AccountLogType/sql_files/transform/data_model_task.sql": f(
 `TRUNCATE TABLE db_data_model.Accounts_dbo_AccountLogType
 ;
 
@@ -368,7 +404,7 @@ ORDER BY saga_real_run_ts ASC
 ;`
   ),
 
-  "dags/BEATS_integration/AccountLogType/sql_files/transformations/delete_logs.sql": f(
+  "dags/BEATS_integration/AccountLogType/sql_files/dqa/delete_logs.sql": f(
 `DELETE FROM db_stage.Accounts_dbo_AccountLogType
 WHERE  saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
 ;`
@@ -416,7 +452,7 @@ PROPERTIES(
 );`
   ),
 
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/stage_to_data_model.sql": f(
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/transform/stage_to_data_model.sql": f(
 `INSERT INTO db_data_model.gamingintegration_tr_dailytransactionamount
 WITH data_rownum AS (
     SELECT
@@ -441,7 +477,7 @@ FROM data_rownum
 WHERE rn = 1;`
   ),
 
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/select_from_source.sql": f(
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/extract/select_from_source.sql": f(
 `SELECT *
 FROM tr.DailyTransactionAmount
 WHERE (rowCreated <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
@@ -450,14 +486,14 @@ WHERE (rowCreated <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
   AND rowModified > DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME)));`
   ),
 
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/delete_stage_old_records.sql": f(
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dqa/delete_stage_old_records.sql": f(
 `DELETE FROM db_stage.gamingintegration_tr_dailytransactionamount
 WHERE balanceDate < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 2 DAY)
 ;`
   ),
 
   // ── schema_and_user_creation ────────────────────────────────────
-  "dags/schema_and_user_creation/sql_files/schema_creation/schemas.sql": f(
+  "dags/schema_and_user_creation/sql_files/load/schemas.sql": f(
 `CREATE DATABASE IF NOT EXISTS db_business_model_DEVELOP
 ;
 CREATE DATABASE IF NOT EXISTS db_data_model_DEVELOP

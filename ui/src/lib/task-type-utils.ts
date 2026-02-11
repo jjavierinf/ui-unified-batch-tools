@@ -1,6 +1,12 @@
 import { PipelineStage } from "./types";
 
 export function getStageFromPath(path: string): PipelineStage {
+  if (path.includes("/extract/")) return "extract";
+  if (path.includes("/transform/")) return "transform";
+  if (path.includes("/load/")) return "load";
+  if (path.includes("/dqa/")) return "dqa";
+
+  // Backward compatibility while migrating persisted/local legacy paths.
   if (path.includes("/ddl/")) return "extract";
   if (path.includes("/transformations/") || path.includes("/dml/")) return "transform";
   // default
