@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import { useEditorStore } from "@/lib/store";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { buildTree } from "@/lib/file-utils";
-import { isDdlPath } from "@/lib/task-type-utils";
+import { isTransparentSystemDdlPath } from "@/lib/task-type-utils";
 import { FileTree } from "./FileTree";
 import { PipelineSidebarPanel } from "./PipelineSidebarPanel";
 
@@ -19,18 +19,18 @@ export function Sidebar() {
   const tasks = usePipelineStore((s) => s.tasks);
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
 
-  const nonDdlPaths = useMemo(
-    () => Object.keys(files).filter((p) => !isDdlPath(p)),
+  const allPaths = useMemo(
+    () => Object.keys(files).filter((p) => !isTransparentSystemDdlPath(p)),
     [files]
   );
-  const tree = useMemo(() => buildTree(nonDdlPaths), [nonDdlPaths]);
+  const tree = useMemo(() => buildTree(allPaths), [allPaths]);
 
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("explorer");
   const [isCreating, setIsCreating] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const fileCount = nonDdlPaths.length;
+  const fileCount = allPaths.length;
 
   // Find pipeline context for the currently selected file
   const pipelineDagName = useMemo(() => {

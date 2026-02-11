@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useEditorStore } from "@/lib/store";
 import { useWorkspaceStore } from "@/lib/workspace-store";
-import { isDdlPath } from "@/lib/task-type-utils";
+import { isTransparentSystemDdlPath } from "@/lib/task-type-utils";
 
 export function QuickOpen() {
   const [open, setOpen] = useState(false);
@@ -15,9 +15,10 @@ export function QuickOpen() {
   const files = useEditorStore((s) => s.files);
   const selectFile = useEditorStore((s) => s.selectFile);
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
+  const setPipelineSubMode = useWorkspaceStore((s) => s.setPipelineSubMode);
 
   const allPaths = useMemo(
-    () => Object.keys(files).filter((p) => !isDdlPath(p)).sort(),
+    () => Object.keys(files).filter((p) => !isTransparentSystemDdlPath(p)).sort(),
     [files]
   );
 
@@ -63,7 +64,8 @@ export function QuickOpen() {
 
   function handleSelect(path: string) {
     selectFile(path);
-    setViewMode("code");
+    setViewMode("pipeline");
+    setPipelineSubMode("pro");
     setOpen(false);
   }
 

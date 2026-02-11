@@ -9,10 +9,16 @@ Alcance implementado:
 ## Qué cambió
 
 ### Migración de paths en mock data
-- Se reemplazaron referencias `sql_files/transformations/*` por `sql_files/transform/*`.
-- Se reemplazaron referencias `sql_files/dml/*` por `sql_files/extract/*`, `sql_files/transform/*` y `sql_files/dqa/*` según task.
-- Se migró `schema_and_user_creation/sql_files/schema_creation/schemas.sql` a `schema_and_user_creation/sql_files/load/schemas.sql`.
+- Se eliminó el contenedor `sql_files` del path visible de trabajo.
+- Se reemplazaron referencias legacy (`transformations`, `dml`) por folders de etapa directos:
+  - `.../extract/...`
+  - `.../transform/...`
+  - `.../load/...`
+  - `.../dqa/...`
+  - `.../ddl/...`
+- Se migró `schema_and_user_creation/schema_creation/schemas.sql` a `schema_and_user_creation/load/schemas.sql`.
 - Se agregaron entradas faltantes de SQL mock para etapas `extract` y `dqa` en pipelines que solo tenían `transform`.
+- Se agregaron ejemplos `ddl/bi_custom_ddl.sql` para representar DDL editable por BI.
 
 ### Alineación de pipeline tasks
 - `ui/src/lib/pipeline-mock-data.ts` ahora apunta a paths stage-first para tasks de negocio.
@@ -26,31 +32,51 @@ Alcance implementado:
   - `/dqa/` -> `dqa`
 - Se mantiene compatibilidad backward para paths legacy (`/transformations/`, `/dml/`) como fallback de migración.
 
+### Política DDL visible
+- Se mantiene la carpeta `ddl` visible para SQL users.
+- Se ocultan solo los DDL transparentes del scaffold:
+  - `create_table_stage.sql`
+  - `create_table_data_model.sql`
+- Se mantienen visibles DDL de BI (`bi_custom_ddl.sql` en mock de ejemplo).
+
 ### Fixture repo de test
 - `scripts/setup-test-repo.sh` ahora crea estructura stage-first para todos los pipelines mock.
 - Se alineó también el fixture de `data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount`.
-- Se movió `schema_and_user_creation` a `sql_files/load/schemas.sql`.
+- Se movió `schema_and_user_creation` a `load/schemas.sql`.
 
 ### Alta de task en Pipeline detail
-- En `PipelineDetail`, la creación rápida de SQL ahora crea en `sql_files/transform/` (antes `sql_files/transformations/`).
+- En `PipelineDetail`, la creación rápida de SQL ahora crea en `transform/` (sin nivel intermedio `sql_files`).
 
 ## Evidencia visual
 
 ### Stage-first folders en explorer
-![Stage-first folders](../screenshots/phase2-stage-folders-file-tree.png)
+![Stage-first folders dark](../screenshots/phase2-stage-folders-file-tree-dark.png)
+
+Qué mirar:
+- Dentro del pipeline se ven folders de etapa directos (`ddl`, `dqa`, `extract`, `transform`) sin `sql_files`.
+- En `ddl` se ve `bi_custom_ddl.sql`.
+- No aparecen `create_table_stage.sql` ni `create_table_data_model.sql` (transparentes).
 
 ### Quick Open: query stage-first (debe devolver resultados)
 ![Quick open stage match dark](../screenshots/phase2-quick-open-stage-match-dark.png)
 
+Qué mirar:
+- Query: `transform/`.
+- Deben verse resultados con rutas `.../transform/...` (incluye `stage_to_data_model.sql`).
+
 ### Quick Open: query legacy (debe devolver vacío)
 ![Quick open legacy no match dark](../screenshots/phase2-quick-open-legacy-no-match-dark.png)
 
-### Qué validar en Quick Open
-- Al buscar `sql_files/transform/` aparecen archivos reales en rutas `.../sql_files/transform/...`.
-- Al buscar `transformations/` aparece `No files match`, confirmando que no quedan paths legacy en el índice de búsqueda.
+Qué mirar:
+- Query: `sql_files/`.
+- Debe verse `No files match`, confirmando que el índice ya no expone el contenedor viejo.
 
 ### Pipeline detail operativo post-migración
-![Pipeline detail stage tasks](../screenshots/phase2-stage-pipeline-detail.png)
+![Pipeline detail stage tasks dark](../screenshots/phase2-stage-pipeline-detail-dark.png)
+
+Qué mirar:
+- En `Task order` aparecen tasks con etiquetas de etapa `EXTRACT`, `TRANSFORM`, `DQA`.
+- Los nombres SQL mostrados (`data_model_task.sql`, `delete_logs.sql`) corresponden al esquema stage-first migrado.
 
 ## Límites scaffold
 - No hay ejecución SQL real ni validación semántica por motor.

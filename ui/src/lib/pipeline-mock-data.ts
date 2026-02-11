@@ -12,7 +12,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/ddl/create_table_stage.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/ddl/create_table_stage.sql",
     order: 1,
   },
   {
@@ -21,7 +21,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/ddl/create_table_data_model.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
@@ -30,7 +30,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/extract/data_model_task.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/extract/data_model_task.sql",
     order: 3,
     taskConfig: {
       expectedWorkload: "medium",
@@ -44,7 +44,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "transform",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/transform/data_model_task.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/transform/data_model_task.sql",
     order: 4,
     taskConfig: {
       expectedWorkload: "low",
@@ -58,7 +58,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "dqa",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/dqa/delete_logs.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/dqa/delete_logs.sql",
     order: 5,
     taskConfig: {
       expectedWorkload: "low",
@@ -75,7 +75,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/Game/sql_files/ddl/create_table_stage.sql",
+    sqlFilePath: "dags/CRM_integration/Game/ddl/create_table_stage.sql",
     order: 1,
   },
   {
@@ -84,7 +84,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/Game/sql_files/ddl/create_table_data_model.sql",
+    sqlFilePath: "dags/CRM_integration/Game/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
@@ -93,7 +93,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/Game/sql_files/extract/data_model_task.sql",
+    sqlFilePath: "dags/CRM_integration/Game/extract/data_model_task.sql",
     order: 3,
     taskConfig: {
       expectedWorkload: "high",
@@ -107,7 +107,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "transform",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/Game/sql_files/transform/data_model_task.sql",
+    sqlFilePath: "dags/CRM_integration/Game/transform/data_model_task.sql",
     order: 4,
     taskConfig: {
       expectedWorkload: "medium",
@@ -121,7 +121,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "dqa",
     taskType: "snapshot",
-    sqlFilePath: "dags/CRM_integration/Game/sql_files/dqa/delete_logs.sql",
+    sqlFilePath: "dags/CRM_integration/Game/dqa/delete_logs.sql",
     order: 5,
     taskConfig: {
       expectedWorkload: "low",
@@ -138,7 +138,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_tr_GameTransaction",
     stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/ddl/create_table_stage.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/ddl/create_table_stage.sql",
     order: 1,
   },
   {
@@ -147,7 +147,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_tr_GameTransaction",
     stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/ddl/create_table_data_model.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
@@ -156,7 +156,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_tr_GameTransaction",
     stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/extract/data_model_task.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/extract/data_model_task.sql",
     order: 3,
     taskConfig: {
       expectedWorkload: "high",
@@ -171,7 +171,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_tr_GameTransaction",
     stage: "transform",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/transform/data_model_task.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/transform/data_model_task.sql",
     order: 4,
     taskConfig: {
       expectedWorkload: "medium",
@@ -185,7 +185,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_tr_GameTransaction",
     stage: "dqa",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/dqa/delete_logs.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/dqa/delete_logs.sql",
     order: 5,
     taskConfig: {
       expectedWorkload: "low",
@@ -202,7 +202,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_BEATS_integration_dbo_AccountLogType",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/extract/data_model_task.sql",
+    sqlFilePath: "dags/BEATS_integration/AccountLogType/extract/data_model_task.sql",
     order: 1,
   },
   {
@@ -211,7 +211,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_BEATS_integration_dbo_AccountLogType",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/ddl/create_table_data_model.sql",
+    sqlFilePath: "dags/BEATS_integration/AccountLogType/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
@@ -220,7 +220,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_BEATS_integration_dbo_AccountLogType",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/ddl/create_table_stage.sql",
+    sqlFilePath: "dags/BEATS_integration/AccountLogType/ddl/create_table_stage.sql",
     order: 3,
     taskConfig: {
       expectedWorkload: "low",
@@ -234,7 +234,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_BEATS_integration_dbo_AccountLogType",
     stage: "transform",
     taskType: "snapshot",
-    sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/transform/data_model_task.sql",
+    sqlFilePath: "dags/BEATS_integration/AccountLogType/transform/data_model_task.sql",
     order: 4,
     taskConfig: {
       expectedWorkload: "low",
@@ -248,7 +248,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_BEATS_integration_dbo_AccountLogType",
     stage: "dqa",
     taskType: "snapshot",
-    sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/dqa/delete_logs.sql",
+    sqlFilePath: "dags/BEATS_integration/AccountLogType/dqa/delete_logs.sql",
     order: 5,
     taskConfig: {
       expectedWorkload: "low",
@@ -265,7 +265,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_data_sources_tr_DailyTransactionAmount",
     stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/ddl/create_table_stage.sql",
+    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/create_table_stage.sql",
     order: 1,
   },
   {
@@ -274,7 +274,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_data_sources_tr_DailyTransactionAmount",
     stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/ddl/create_table_data_model.sql",
+    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
@@ -283,7 +283,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_data_sources_tr_DailyTransactionAmount",
     stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/extract/select_from_source.sql",
+    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/extract/select_from_source.sql",
     order: 3,
     taskConfig: {
       expectedWorkload: "high",
@@ -305,7 +305,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_data_sources_tr_DailyTransactionAmount",
     stage: "transform",
     taskType: "incremental",
-    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/transform/stage_to_data_model.sql",
+    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/transform/stage_to_data_model.sql",
     order: 4,
     taskConfig: {
       expectedWorkload: "medium",
@@ -319,7 +319,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_data_sources_tr_DailyTransactionAmount",
     stage: "dqa",
     taskType: "incremental",
-    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dqa/delete_stage_old_records.sql",
+    sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/dqa/delete_stage_old_records.sql",
     order: 5,
     taskConfig: {
       expectedWorkload: "low",
