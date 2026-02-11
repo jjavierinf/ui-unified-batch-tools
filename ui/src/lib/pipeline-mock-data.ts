@@ -1,4 +1,5 @@
 import { PipelineTask } from "./types";
+import { isDdlTask } from "./task-type-utils";
 
 // 5 tasks per DAG × 5 DAGs = 25 tasks
 // Pattern per DAG: create_table_stage → create_table_data_model → extract_and_load → data_model_task → delete_logs
@@ -11,7 +12,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "sql/AccountReference/ddl_stage_account_reference.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/ddl/create_table_stage.sql",
     order: 1,
   },
   {
@@ -20,17 +21,22 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "sql/AccountReference/ddl_datamodel_account_reference.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
     id: "crm-acctref-3",
     name: "extract_crm_accounts",
     dagName: "dag_CRM_integration_dbo_AccountReference",
-    stage: "load",
+    stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "sql/AccountReference/extract_crm_accounts.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/transformations/data_model_task.sql",
     order: 3,
+    taskConfig: {
+      expectedWorkload: "medium",
+      connection: { source: "sqlserver_Accounts", target: "starrocks_conn" },
+      query: { file: "extract_crm_accounts.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "crm-acctref-4",
@@ -38,8 +44,13 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "transform",
     taskType: "snapshot",
-    sqlFilePath: "sql/AccountReference/transform_account_to_datamodel.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/transformations/data_model_task.sql",
     order: 4,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn" },
+      query: { file: "data_model_task.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "crm-acctref-5",
@@ -47,8 +58,14 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_dbo_AccountReference",
     stage: "dqa",
     taskType: "snapshot",
-    sqlFilePath: "sql/AccountReference/cleanup_old_account_snapshots.sql",
+    sqlFilePath: "dags/CRM_integration/AccountReference/sql_files/transformations/delete_logs.sql",
     order: 5,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn" },
+      query: { file: "delete_logs.sql", timezone: "US/Eastern" },
+      dqa: { queryType: "single_query_notification", alertKind: "warning", tolerance: 0 },
+    },
   },
 
   // ── dag_CRM_integration_gc_Game (snapshot) ──
@@ -58,7 +75,7 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "sql/Game/ddl_stage_game.sql",
+    sqlFilePath: "dags/CRM_integration/Game/sql_files/ddl/create_table_stage.sql",
     order: 1,
   },
   {
@@ -67,17 +84,22 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "sql/Game/ddl_datamodel_game.sql",
+    sqlFilePath: "dags/CRM_integration/Game/sql_files/ddl/create_table_data_model.sql",
     order: 2,
   },
   {
     id: "crm-game-3",
     name: "extract_game_catalog",
     dagName: "dag_CRM_integration_gc_Game",
-    stage: "load",
+    stage: "extract",
     taskType: "snapshot",
-    sqlFilePath: "sql/Game/extract_game_catalog.sql",
+    sqlFilePath: "dags/CRM_integration/Game/sql_files/transformations/data_model_task.sql",
     order: 3,
+    taskConfig: {
+      expectedWorkload: "high",
+      connection: { source: "sqlserver_Gaming", target: "starrocks_conn" },
+      query: { file: "extract_game_catalog.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "crm-game-4",
@@ -85,8 +107,13 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "transform",
     taskType: "snapshot",
-    sqlFilePath: "sql/Game/transform_game_to_datamodel.sql",
+    sqlFilePath: "dags/CRM_integration/Game/sql_files/transformations/data_model_task.sql",
     order: 4,
+    taskConfig: {
+      expectedWorkload: "medium",
+      connection: { source: "starrocks_conn" },
+      query: { file: "data_model_task.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "crm-game-5",
@@ -94,8 +121,14 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_gc_Game",
     stage: "dqa",
     taskType: "snapshot",
-    sqlFilePath: "sql/Game/cleanup_old_game_snapshots.sql",
+    sqlFilePath: "dags/CRM_integration/Game/sql_files/transformations/delete_logs.sql",
     order: 5,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn" },
+      query: { file: "delete_logs.sql", timezone: "US/Eastern" },
+      dqa: { queryType: "single_query_notification", alertKind: "warning", tolerance: 0 },
+    },
   },
 
   // ── dag_CRM_integration_tr_GameTransaction (incremental) ──
@@ -121,10 +154,16 @@ export const initialPipelineTasks: PipelineTask[] = [
     id: "crm-gametx-3",
     name: "extract_and_load",
     dagName: "dag_CRM_integration_tr_GameTransaction",
-    stage: "load",
+    stage: "extract",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/ddl/create_table_stage.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/transformations/data_model_task.sql",
     order: 3,
+    taskConfig: {
+      expectedWorkload: "high",
+      connection: { source: "sqlserver_Gaming", target: "starrocks_conn" },
+      query: { file: "extract_game_transactions.sql", timezone: "US/Eastern" },
+      loadTarget: { type: "DB", connection: { target: "starrocks_conn" } },
+    },
   },
   {
     id: "crm-gametx-4",
@@ -134,6 +173,11 @@ export const initialPipelineTasks: PipelineTask[] = [
     taskType: "incremental",
     sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/transformations/data_model_task.sql",
     order: 4,
+    taskConfig: {
+      expectedWorkload: "medium",
+      connection: { source: "starrocks_conn" },
+      query: { file: "data_model_task.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "crm-gametx-5",
@@ -141,8 +185,14 @@ export const initialPipelineTasks: PipelineTask[] = [
     dagName: "dag_CRM_integration_tr_GameTransaction",
     stage: "dqa",
     taskType: "incremental",
-    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/ddl/create_table_data_model.sql",
+    sqlFilePath: "dags/CRM_integration/GameTransaction/sql_files/transformations/data_model_task.sql",
     order: 5,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn", target: "starrocks_conn" },
+      query: { file: "delete_logs.sql", timezone: "US/Eastern" },
+      dqa: { queryType: "source_vs_target_query_comparison", alertKind: "error", tolerance: 0 },
+    },
   },
 
   // ── dag_BEATS_integration_dbo_AccountLogType (snapshot) ──
@@ -168,10 +218,15 @@ export const initialPipelineTasks: PipelineTask[] = [
     id: "beats-acctlog-3",
     name: "extract_and_load",
     dagName: "dag_BEATS_integration_dbo_AccountLogType",
-    stage: "load",
+    stage: "extract",
     taskType: "snapshot",
     sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/ddl/create_table_stage.sql",
     order: 3,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "sqlserver_Accounts", target: "starrocks_conn" },
+      query: { file: "extract_account_log_type.sql", timezone: "UTC" },
+    },
   },
   {
     id: "beats-acctlog-4",
@@ -181,6 +236,11 @@ export const initialPipelineTasks: PipelineTask[] = [
     taskType: "snapshot",
     sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/transformations/data_model_task.sql",
     order: 4,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn" },
+      query: { file: "data_model_task.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "beats-acctlog-5",
@@ -190,6 +250,12 @@ export const initialPipelineTasks: PipelineTask[] = [
     taskType: "snapshot",
     sqlFilePath: "dags/BEATS_integration/AccountLogType/sql_files/transformations/delete_logs.sql",
     order: 5,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn" },
+      query: { file: "delete_logs.sql", timezone: "US/Eastern" },
+      dqa: { queryType: "single_query_notification", alertKind: "warning", tolerance: 0 },
+    },
   },
 
   // ── dag_data_sources_tr_DailyTransactionAmount (incremental) ──
@@ -215,10 +281,23 @@ export const initialPipelineTasks: PipelineTask[] = [
     id: "ds-dailytx-3",
     name: "extract_and_load",
     dagName: "dag_data_sources_tr_DailyTransactionAmount",
-    stage: "load",
+    stage: "extract",
     taskType: "incremental",
     sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/select_from_source.sql",
     order: 3,
+    taskConfig: {
+      expectedWorkload: "high",
+      connection: { source: "sqlserver_Gaming", target: "starrocks_conn" },
+      query: { file: "select_from_source.sql", timezone: "US/Eastern" },
+      loadTarget: {
+        type: "Email",
+        connection: { target: "starrocks_conn" },
+        to: ["reports@company.com"],
+        cc: ["data-team@company.com"],
+        subject: "Daily Transaction Amount Report",
+        body: "Attached is the daily transaction amount report.",
+      },
+    },
   },
   {
     id: "ds-dailytx-4",
@@ -228,6 +307,11 @@ export const initialPipelineTasks: PipelineTask[] = [
     taskType: "incremental",
     sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/stage_to_data_model.sql",
     order: 4,
+    taskConfig: {
+      expectedWorkload: "medium",
+      connection: { source: "starrocks_conn" },
+      query: { file: "stage_to_data_model.sql", timezone: "US/Eastern" },
+    },
   },
   {
     id: "ds-dailytx-5",
@@ -237,11 +321,23 @@ export const initialPipelineTasks: PipelineTask[] = [
     taskType: "incremental",
     sqlFilePath: "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/sql_files/dml/delete_stage_old_records.sql",
     order: 5,
+    taskConfig: {
+      expectedWorkload: "low",
+      connection: { source: "starrocks_conn" },
+      query: { file: "delete_stage_old_records.sql", timezone: "US/Eastern" },
+      dqa: { queryType: "single_query_notification", alertKind: "error", tolerance: 0.01 },
+    },
   },
 ];
 
 export function getTasksForPipeline(tasks: PipelineTask[], dagName: string): PipelineTask[] {
   return tasks
     .filter((t) => t.dagName === dagName)
+    .sort((a, b) => a.order - b.order);
+}
+
+export function getNonDdlTasksForPipeline(tasks: PipelineTask[], dagName: string): PipelineTask[] {
+  return tasks
+    .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
     .sort((a, b) => a.order - b.order);
 }

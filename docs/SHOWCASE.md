@@ -13,11 +13,11 @@ Full SQL editing environment with file tree, Monaco editor, and diff viewer.
 
 **Dark mode** — file tree expanded, SQL syntax highlighting, status badges, environment toggle (Dev/Prod):
 
-![Editor - Dark mode](../ui/public/screenshots/01-editor-dark.png)
+![Editor - Dark mode](screenshots/01-editor-dark.png)
 
 **Light mode** — same layout, full theme support including Monaco editor theme swap:
 
-![Editor - Light mode](../ui/public/screenshots/02-editor-light.png)
+![Editor - Light mode](screenshots/02-editor-light.png)
 
 ### Key features
 - Repo browser sidebar with 21 SQL files organized by integration/table
@@ -32,7 +32,7 @@ Full SQL editing environment with file tree, Monaco editor, and diff viewer.
 
 Side-by-side diff comparing current buffer vs last saved version. Collapsible via the CHANGES header chevron.
 
-![Diff panel showing changes](../ui/public/screenshots/05-diff-panel.png)
+![Diff panel showing changes](screenshots/05-diff-panel.png)
 
 The diff panel shows inline additions (green) and the original content, just like a git diff. The orange dot on the file name and the "Save all (1)" button in the top bar indicate unsaved changes.
 
@@ -44,7 +44,7 @@ Environment toggle (Dev/Prod) controls the submit behavior:
 - **Dev submit:** status changes to Submitted
 - **Prod submit:** status changes to Pending Approval, showing the approval panel
 
-![Prod approval flow](../ui/public/screenshots/06-approval-flow.png)
+![Prod approval flow](screenshots/06-approval-flow.png)
 
 The approval panel shows submission timestamp and Approve/Reject buttons. Toast notifications confirm each action. Note the "Pending" badge in both the file tab and the tree node.
 
@@ -54,7 +54,7 @@ The approval panel shows submission timestamp and Approve/Reject buttons. Toast 
 
 VS Code-style modal with fuzzy filtering across all 21 SQL files. Arrow keys to navigate, Enter to open, Esc to close.
 
-![Quick open filtering "game"](../ui/public/screenshots/03-quick-open.png)
+![Quick open filtering "game"](screenshots/03-quick-open.png)
 
 ---
 
@@ -62,43 +62,47 @@ VS Code-style modal with fuzzy filtering across all 21 SQL files. Arrow keys to 
 
 Overlay listing all available shortcuts. Global Cmd+S saves the current file from any view with toast feedback.
 
-![Keyboard shortcuts overlay](../ui/public/screenshots/04-shortcuts.png)
+![Keyboard shortcuts overlay](screenshots/04-shortcuts.png)
 
 ---
 
-## Pipeline Overview ---- el split de proyect deberia ser por tag en lugar de por folder
+## Pipeline Overview
 
-All DAG configurations grouped by integration, with search/filter, type badges, cron schedule descriptions, and next-run countdowns.
+All DAG configurations grouped by **tag** (BEATS_INTEGRATION, CRM_INTEGRATION, DATA_SOURCES), with search/filter, type badges, cron schedule descriptions, and next-run countdowns. DDL tasks are excluded from counts and listings.
 
-**Dark mode:**
-
-![Pipeline overview - Dark](../ui/public/screenshots/07-pipeline-overview.png)
-
-**Light mode:**  
-#TODO: los create tables no deberian estar en el overview, lo manejamos por atras nosotros
-#TODO: si necesitan un ddl ad hoc para campos distintos al default si pueden crearlo 
-
-![Pipeline overview - Light](../ui/public/screenshots/09-pipeline-light.png)
+![Pipeline overview](screenshots/05-pipeline-overview.png)
 
 ---
 
 ## Pipeline Detail
 
-Per-pipeline view with configuration editor and drag-and-drop task ordering.
+Per-pipeline view with extended configuration editor, drag-and-drop task ordering, and SQL slide-out editor.
 
-![Pipeline detail with task ordering](../ui/public/screenshots/08-pipeline-detail.png)
+![Pipeline detail with config and tasks](screenshots/06-pipeline-detail.png)
 
 ### Configuration
+- **Basic Info:** owner, start date, timezone
 - **Cron input:** live validation indicator, 5/5 part counter, preset buttons (Hourly, Every 3h, Daily 6am, Every 15m)
 - **Tag editor:** autocomplete from existing tags, chip display with remove, keyboard navigation
+- **Channels:** team, incidents channel, alerts channel
 - **Next-run countdown** in accent color (e.g., "Next in 1h 14m")
 
 ### Task Ordering
-- Drag-and-drop reorderable task list (5 tasks per pipeline)
-- Task cards with order badge (#1-#5), stage badge (EXTRACT/TRANSFORM/LOAD/DQA), SQL filename
+- Drag-and-drop reorderable task list (DDL excluded)
+- Task cards with order badge, stage badge (EXTRACT/TRANSFORM/DQA), SQL filename
+- Per-task config panel: workload, connections, query file, DQA settings
 - Color-coded left borders per stage type
 - Connector arrows between tasks
-- Order persisted to localStorage
+- "+ Add task" button to create new SQL files from Pipeline Mode
+
+### SQL Slide-out Editor
+- Click any task to open Monaco editor in a slide-out panel
+- Edit SQL without leaving pipeline context
+- Diff toggle button in footer
+- "Open in Code Mode" button
+- Save with Cmd+S
+
+![SQL editor slide-out](screenshots/07-sql-slideout.png)
 
 ---
 
@@ -114,6 +118,11 @@ Per-pipeline view with configuration editor and drag-and-drop task ordering.
 | Collapsible Diff | Click header | Toggle CHANGES panel visibility |
 | Dark / Light Mode | Top bar icon | Full theme support including Monaco Editor |
 | Keyboard Accessibility | Tab navigation | Focus-visible rings, ARIA roles on all interactive elements |
+| Login Screen | App start | Two user profiles (Data Engineer / Team Leader) with role badges |
+| Pipeline Sidebar | Code Mode | Pipeline context (schedule, tags, tasks) for current file |
+| Git Integration | Backend | Save/Submit/Approve write to real git repo via API routes |
+| Branch Indicator | Header | Shows current git branch with polling |
+| Support Modal | Floating `?` | Simulates Jira ticket creation + Mattermost notification |
 
 ---
 
@@ -122,28 +131,38 @@ Per-pipeline view with configuration editor and drag-and-drop task ordering.
 ```
 ui/src/
 ├── app/
-│   ├── layout.tsx              # Root + global overlays
-│   ├── editor/page.tsx         # SQL Editor page
-│   └── pipelines/page.tsx      # Pipeline orchestration page
+│   ├── layout.tsx              # Root + AuthGuard + SupportButton
+│   ├── page.tsx                # WorkspaceShell (unified entry)
+│   ├── editor/page.tsx         # Code Mode alias
+│   ├── pipelines/page.tsx      # Pipeline Mode alias
+│   └── api/git/                # Git API routes (status, save, submit, approve)
 ├── lib/
-│   ├── store.ts                # Editor store (Zustand + persist)
+│   ├── store.ts                # Editor store (Zustand + persist + git API calls)
 │   ├── pipeline-store.ts       # Pipeline store (Zustand + persist)
-│   ├── toast-store.ts          # Toast notification store
-│   ├── types.ts                # Shared TypeScript types
-│   ├── mock-data.ts            # 21 SQL files
-│   ├── pipeline-mock-data.ts   # 25 tasks across 5 DAGs
+│   ├── workspace-store.ts      # View mode store (code/pipeline)
+│   ├── auth-store.ts           # Auth store (login/logout)
+│   ├── git-service.ts          # Server-side git operations (simple-git)
+│   ├── task-type-utils.ts      # Stage derivation + DDL detection
+│   ├── types.ts                # Shared types (extended with TaskConfig, DqaConfig, etc.)
+│   ├── mock-data.ts            # SQL files + DAG configs
+│   ├── pipeline-mock-data.ts   # Tasks across 5 DAGs (DDL filtered)
 │   ├── cron-utils.ts           # Cron parser + next-run calculator
 │   └── file-utils.ts           # Flat paths -> tree builder
 ├── components/
-│   ├── Sidebar / FileTree / FileTreeNode
+│   ├── WorkspaceShell / UnifiedHeader / CodeView / PipelineView
+│   ├── LoginScreen / AuthGuard / UserMenu
+│   ├── Sidebar (Explorer + Pipeline tabs) / FileTree / FileTreeNode
 │   ├── EditorPanel / SqlEditor / SqlDiffViewer
-│   ├── EditorActionButtons / ApprovalPanel / StatusBadge
-│   ├── EnvironmentToggle / ToastContainer
-│   ├── QuickOpen / KeyboardShortcuts
+│   ├── PipelineContextIndicator / PipelineSidebarPanel
+│   ├── SupportButton / SupportModal
+│   ├── git/BranchIndicator
 │   └── pipeline/
 │       ├── PipelineBoard / PipelineOverview / PipelineDetail
-│       ├── PipelineNav / PipelineTaskCard
+│       ├── PipelineTaskCard / SqlEditorSlideOut
+│       ├── DagConfigEditor / TaskConfigPanel
 │       └── CronInput / TagEditor
+scripts/
+└── setup-test-repo.sh          # Creates test git repo at /tmp/test-pipeline-repo
 ```
 
 ## Running

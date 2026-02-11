@@ -6,6 +6,7 @@ import { SqlDiffViewer } from "./SqlDiffViewer";
 import { EditorActionButtons } from "./EditorActionButtons";
 import { ApprovalPanel } from "./ApprovalPanel";
 import { StatusBadge } from "./StatusBadge";
+import { PipelineContextIndicator } from "./PipelineContextIndicator";
 
 export function EditorPanel() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
@@ -81,6 +82,7 @@ export function EditorPanel() {
           </span>
         )}
         <StatusBadge status={file.status} />
+        <PipelineContextIndicator />
         {isModified && (
           <span
             className="w-2 h-2 rounded-full bg-orange-400 shrink-0"

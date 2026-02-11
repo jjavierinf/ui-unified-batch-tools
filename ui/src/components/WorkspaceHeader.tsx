@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEditorStore } from "@/lib/store";
 import { EnvironmentToggle } from "./EnvironmentToggle";
 import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 
 export function WorkspaceHeader() {
   const files = useEditorStore((s) => s.files);
@@ -67,6 +68,7 @@ export function WorkspaceHeader() {
       <div className="flex items-center gap-2">
         <EnvironmentToggle />
         <ThemeToggle />
+        <UserMenu />
 
         <button
           onClick={handleSaveAll}

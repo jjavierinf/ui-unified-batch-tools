@@ -1,16 +1,15 @@
 "use client";
 
-import { PipelineHeader } from "@/components/pipeline/PipelineHeader";
-import { PipelineBoard } from "@/components/pipeline/PipelineBoard";
-import { HydrationGuard } from "@/components/HydrationGuard";
+import { useEffect } from "react";
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import { WorkspaceShell } from "@/components/WorkspaceShell";
 
 export default function PipelinesPage() {
-  return (
-    <HydrationGuard>
-      <div className="flex flex-col h-full bg-background">
-        <PipelineHeader />
-        <PipelineBoard />
-      </div>
-    </HydrationGuard>
-  );
+  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
+
+  useEffect(() => {
+    setViewMode("pipeline");
+  }, [setViewMode]);
+
+  return <WorkspaceShell />;
 }
