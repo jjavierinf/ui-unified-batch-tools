@@ -1,0 +1,9 @@
+services:
+  ui:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - EXTERNAL_REPO_PATH=/tmp/test-pipeline-repo
