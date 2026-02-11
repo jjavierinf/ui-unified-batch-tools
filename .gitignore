@@ -29,9 +29,14 @@ npm-debug.log*
 # Archives & screenshots (reference material, not source)
 *.tar
 *.zip
+*.pdf
+*.png
 DI-2810-screenshots/
 
 # Claude Code
 .claude/
+.playwright-cli/
+tasks/
+AGENTS.md
 CLAUDE.md
 CLAUDE_*.md
