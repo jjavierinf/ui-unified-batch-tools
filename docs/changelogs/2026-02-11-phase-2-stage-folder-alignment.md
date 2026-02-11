@@ -39,8 +39,15 @@ Alcance implementado:
 ### Stage-first folders en explorer
 ![Stage-first folders](../screenshots/phase2-stage-folders-file-tree.png)
 
-### Quick Open con paths stage-first
-![Quick open stage paths](../screenshots/phase2-stage-paths-quick-open.png)
+### Quick Open: query stage-first (debe devolver resultados)
+![Quick open stage match dark](../screenshots/phase2-quick-open-stage-match-dark.png)
+
+### Quick Open: query legacy (debe devolver vacío)
+![Quick open legacy no match dark](../screenshots/phase2-quick-open-legacy-no-match-dark.png)
+
+### Qué validar en Quick Open
+- Al buscar `sql_files/transform/` aparecen archivos reales en rutas `.../sql_files/transform/...`.
+- Al buscar `transformations/` aparece `No files match`, confirmando que no quedan paths legacy en el índice de búsqueda.
 
 ### Pipeline detail operativo post-migración
 ![Pipeline detail stage tasks](../screenshots/phase2-stage-pipeline-detail.png)
@@ -51,7 +58,6 @@ Alcance implementado:
 
 ## TODO hooks
 - Conectar stage folders a validación dinámica de config por task type basada en `configfile_proposal.yml` (fase 4).
-- Definir migración explícita de `localStorage` para instalaciones con estado viejo persistido.
 
 ## Calidad
 - `cd ui && npm run lint` (sin errores; warnings existentes no bloqueantes).
