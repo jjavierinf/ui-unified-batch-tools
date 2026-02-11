@@ -206,7 +206,7 @@ export function PipelineDetail() {
                         ? newTaskName.trim()
                         : `${newTaskName.trim()}.sql`;
                       const dagFolder = config.dagName.replace(/^dag_/, "").split("_").slice(0, 2).join("/");
-                      const path = `dags/${dagFolder}/sql_files/transformations/${name}`;
+                      const path = `dags/${dagFolder}/sql_files/transform/${name}`;
                       createFile(path);
                       setSlideOutFile(path);
                       setShowAddTask(false);
