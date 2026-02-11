@@ -1,0 +1,82 @@
+team: X                                 # esto sale por repo
+incidents_channel: X                    # esto sale por repo
+alerts_channel: X                       # esto sale por repo
+
+pipe_name: unique_pipeline_name
+schedule_interval: "0 1 * * *"          # validacion de todo > a 5 mins
+owner: mm.user
+start_date: "YYYY-MM-DD"
+timezone: "US/Eastern"                  # If timezone is not set default timezone is UTC
+tags: ["CRM","Wallet"]
+
+task_order: ["consume_something","model_something","report_something","check_sales_count","compare_counts"]
+
+extract:
+  - task_name: consume_something
+    type: snapshot/incremental
+    expected_workload: low/medium/high  # Me gustaria automatizar esto de alguna forma, aca podriamos hacer rows X columns X size 
+    target_table_name:                  # Optional Default to our standard naming convention
+    connection:
+      source: source_db_conn
+      target: target_db_conn
+    query: 
+      file: query.sql                   # aca tenemos que ver como meter templates de jinja mas faciles de entender {ts} por ej no sirve para esta gente
+      timezone: US/Eastern              # If sql_timezone is not set default timezone is US/Eastern
+
+transform:
+  - task_name: model_something
+    connection: 
+      source: source_db_conn
+    query: 
+      file: query.sql
+      timezone: US/Eastern            # If sql_timezone is not set default timezone is US/Eastern
+
+  - task_name: model_something_else
+    connection: 
+      source: source_db_conn
+    query: 
+      file: query.sql
+      timezone: US/Eastern    
+
+load:
+  - task_name: load_to_target
+    connection: 
+      source: source_db_conn
+      target: 
+        type: DB/S3/Email # default to DB , next iteration add GCS/Azure/Neo4j/Splunk/Sisense
+        connection:
+          target: target_db_conn
+        to: ["fakemail@ormaybenot.com","imnotreal@trustme.com"]
+        cc: ["imalsoafakemail@ormaybenot.com","imalsonotreal@trustme.com"]
+        subject: # Your Subject Here
+        body: # Your custom email body
+    query: 
+      file: query.sql
+      timezone: US/Eastern     
+
+dqa:
+  - task_name: check_sales_count
+    connection: 
+      source: source_db_conn
+    query: 
+      file: daily_sales_count.sql
+      timezone: US/Eastern # If sql_timezone is not set default timezone is US/Eastern
+      type: single_query_notification # Default to regular query
+      alert_kind: warning
+      tolerance: 0
+
+  - task_name: compare_counts
+    connection: 
+      source: source_db_conn
+      target: target_db_conn
+    query: 
+      type: source_vs_target_query_comparison
+      alert_kind: error
+      tolerance: 0.00
+      file:
+        source:
+          file: count.sql
+          timezone: UTC # If sql_timezone is not set default timezone is US/Eastern
+        target: 
+          file: count_target.sql
+          timezone: UTC # If sql_timezone is not set default timezone is US/Eastern

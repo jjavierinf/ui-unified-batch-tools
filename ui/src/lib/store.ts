@@ -22,6 +22,8 @@ interface EditorStore {
   submitFile: (path: string) => void;
   approveFile: (path: string) => void;
   rejectFile: (path: string) => void;
+  approveAll: () => void;
+  rejectAll: () => void;
   resetToDefaults: () => void;
 }
 
@@ -51,16 +53,23 @@ export const useEditorStore = create<EditorStore>()(
           },
         })),
 
-      saveFile: (path) =>
-        set((state) => ({
+      saveFile: (path) => {
+        const state = get();
+        const file = state.files[path];
+        if (!file) return;
+        set({
           files: {
             ...state.files,
-            [path]: {
-              ...state.files[path],
-              savedContent: state.files[path].content,
-            },
+            [path]: { ...file, savedContent: file.content },
           },
-        })),
+        });
+        // Async git save (fire-and-forget, UI stays responsive)
+        fetch("/api/git/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filePath: path, content: file.content }),
+        }).catch(() => { /* git repo may not be available */ });
+      },
 
       toggleFolder: (path) =>
         set((state) => {
@@ -94,39 +103,52 @@ export const useEditorStore = create<EditorStore>()(
           selectedFile: path,
         })),
 
-      submitFile: (path) =>
-        set((state) => {
-          const env = state.environment;
-          const file = state.files[path];
-          if (!file) return state;
-          return {
-            files: {
-              ...state.files,
-              [path]: {
-                ...file,
-                status: env === "dev" ? "submitted" : "pending_approval",
-                submittedAt: new Date().toISOString(),
-              },
+      submitFile: (path) => {
+        const state = get();
+        const env = state.environment;
+        const file = state.files[path];
+        if (!file) return;
+        set({
+          files: {
+            ...state.files,
+            [path]: {
+              ...file,
+              status: env === "dev" ? "submitted" : "pending_approval",
+              submittedAt: new Date().toISOString(),
             },
-          };
-        }),
+          },
+        });
+        // Async git submit (fire-and-forget)
+        const endpoint = env === "dev" ? "/api/git/submit-dev" : "/api/git/submit-prod";
+        fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filePath: path, content: file.content }),
+        }).catch(() => { /* git repo may not be available */ });
+      },
 
-      approveFile: (path) =>
-        set((state) => {
-          const file = state.files[path];
-          if (!file || file.status !== "pending_approval") return state;
-          return {
-            files: {
-              ...state.files,
-              [path]: {
-                ...file,
-                status: "approved",
-                savedContent: file.content,
-                approvedAt: new Date().toISOString(),
-              },
+      approveFile: (path) => {
+        const state = get();
+        const file = state.files[path];
+        if (!file || file.status !== "pending_approval") return;
+        set({
+          files: {
+            ...state.files,
+            [path]: {
+              ...file,
+              status: "approved",
+              savedContent: file.content,
+              approvedAt: new Date().toISOString(),
             },
-          };
-        }),
+          },
+        });
+        // Async git approve (merge to prod)
+        fetch("/api/git/approve-prod", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filePath: path }),
+        }).catch(() => { /* git repo may not be available */ });
+      },
 
       rejectFile: (path) =>
         set((state) => {
@@ -141,6 +163,45 @@ export const useEditorStore = create<EditorStore>()(
               },
             },
           };
+        }),
+
+      approveAll: () => {
+        const state = get();
+        const updated = { ...state.files };
+        const now = new Date().toISOString();
+        let hasPending = false;
+        for (const [path, file] of Object.entries(updated)) {
+          if (file.status === "pending_approval") {
+            hasPending = true;
+            updated[path] = {
+              ...file,
+              status: "approved",
+              savedContent: file.content,
+              approvedAt: now,
+            };
+          }
+        }
+        if (!hasPending) return;
+        set({ files: updated });
+        fetch("/api/git/approve-prod", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ all: true }),
+        }).catch(() => {});
+      },
+
+      rejectAll: () =>
+        set((state) => {
+          const updated = { ...state.files };
+          let hasPending = false;
+          for (const [path, file] of Object.entries(updated)) {
+            if (file.status === "pending_approval") {
+              hasPending = true;
+              updated[path] = { ...file, status: "draft" };
+            }
+          }
+          if (!hasPending) return state;
+          return { files: updated };
         }),
 
       resetToDefaults: () =>

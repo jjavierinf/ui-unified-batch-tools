@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 
 export function PipelineHeader() {
   return (
@@ -49,6 +50,7 @@ export function PipelineHeader() {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
+        <UserMenu />
       </div>
     </header>
   );

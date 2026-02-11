@@ -1,20 +1,15 @@
 "use client";
 
-import { Sidebar } from "@/components/Sidebar";
-import { EditorPanel } from "@/components/EditorPanel";
-import { WorkspaceHeader } from "@/components/WorkspaceHeader";
-import { HydrationGuard } from "@/components/HydrationGuard";
+import { useEffect } from "react";
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import { WorkspaceShell } from "@/components/WorkspaceShell";
 
 export default function EditorPage() {
-  return (
-    <HydrationGuard>
-      <div className="flex flex-col h-full overflow-hidden">
-        <WorkspaceHeader />
-        <div className="flex flex-1 min-h-0">
-          <Sidebar />
-          <EditorPanel />
-        </div>
-      </div>
-    </HydrationGuard>
-  );
+  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
+
+  useEffect(() => {
+    setViewMode("code");
+  }, [setViewMode]);
+
+  return <WorkspaceShell />;
 }

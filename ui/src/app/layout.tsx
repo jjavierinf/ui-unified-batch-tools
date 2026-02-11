@@ -5,6 +5,8 @@ import { DarkModeInit } from "@/components/DarkModeInit";
 import { ToastContainer } from "@/components/ToastContainer";
 import { QuickOpen } from "@/components/QuickOpen";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { SupportButton } from "@/components/SupportButton";
+import { AuthGuard } from "@/components/AuthGuard";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -12,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SQL Pipeline Editor",
-  description: "SQL file browser and editor for Airflow pipelines",
+  title: "Unified Batch Tools",
+  description: "Centralized platform for managing SQL pipelines",
 };
 
 export default function RootLayout({
@@ -25,10 +27,13 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${geistMono.variable} font-mono h-full antialiased`}>
         <DarkModeInit />
-        {children}
+        <AuthGuard>
+          {children}
+        </AuthGuard>
         <ToastContainer />
         <QuickOpen />
         <KeyboardShortcuts />
+        <SupportButton />
       </body>
     </html>
   );

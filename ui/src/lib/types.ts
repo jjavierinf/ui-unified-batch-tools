@@ -11,6 +11,46 @@ export interface SqlFile {
 
 export type PipelineStage = "extract" | "transform" | "load" | "dqa";
 
+// ── Task configuration types (from configfile_proposal.yml) ──
+
+export type WorkloadLevel = "low" | "medium" | "high";
+export type LoadTargetType = "DB" | "S3" | "Email";
+export type DqaQueryType = "single_query_notification" | "source_vs_target_query_comparison";
+export type DqaAlertKind = "warning" | "error";
+
+export interface TaskConnection {
+  source: string;
+  target?: string;
+}
+
+export interface TaskQueryConfig {
+  file: string;
+  timezone?: string;
+}
+
+export interface LoadTarget {
+  type: LoadTargetType;
+  connection?: { target: string };
+  to?: string[];
+  cc?: string[];
+  subject?: string;
+  body?: string;
+}
+
+export interface DqaConfig {
+  queryType?: DqaQueryType;
+  alertKind?: DqaAlertKind;
+  tolerance?: number;
+}
+
+export interface TaskConfig {
+  expectedWorkload?: WorkloadLevel;
+  connection?: TaskConnection;
+  query?: TaskQueryConfig;
+  loadTarget?: LoadTarget;
+  dqa?: DqaConfig;
+}
+
 export interface PipelineTask {
   id: string;
   name: string;
@@ -19,6 +59,7 @@ export interface PipelineTask {
   taskType: "snapshot" | "incremental";
   sqlFilePath: string;
   order: number;
+  taskConfig?: TaskConfig;
 }
 
 export interface DagConfig {
@@ -27,6 +68,13 @@ export interface DagConfig {
   schedule: string;
   tags: string[];
   dagType: "snapshot" | "incremental";
+  // Extended fields from configfile_proposal.yml
+  owner?: string;
+  startDate?: string;
+  timezone?: string;
+  team?: string;
+  incidentsChannel?: string;
+  alertsChannel?: string;
 }
 
 export interface TreeNode {
