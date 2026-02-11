@@ -11,7 +11,7 @@ import { BranchIndicator } from "./git/BranchIndicator";
 const baseTabs: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
   {
     key: "code",
-    label: "SQL Editor",
+    label: "SQL Explorer",
     icon: (
       <svg
         width="13"
