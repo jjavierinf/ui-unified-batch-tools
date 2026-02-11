@@ -1,0 +1,24 @@
+"use client";
+
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import { UnifiedHeader } from "./UnifiedHeader";
+import { CodeView } from "./CodeView";
+import { PipelineView } from "./PipelineView";
+import { ApprovalsView } from "./ApprovalsView";
+
+export function WorkspaceShell() {
+  const viewMode = useWorkspaceStore((s) => s.viewMode);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <UnifiedHeader />
+      {viewMode === "code" ? (
+        <CodeView />
+      ) : viewMode === "pipeline" ? (
+        <PipelineView />
+      ) : (
+        <ApprovalsView />
+      )}
+    </div>
+  );
+}
