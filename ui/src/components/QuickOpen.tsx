@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useEditorStore } from "@/lib/store";
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import { isDdlPath } from "@/lib/task-type-utils";
 
 export function QuickOpen() {
   const [open, setOpen] = useState(false);
@@ -12,8 +14,12 @@ export function QuickOpen() {
 
   const files = useEditorStore((s) => s.files);
   const selectFile = useEditorStore((s) => s.selectFile);
+  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
 
-  const allPaths = useMemo(() => Object.keys(files).sort(), [files]);
+  const allPaths = useMemo(
+    () => Object.keys(files).filter((p) => !isDdlPath(p)).sort(),
+    [files]
+  );
 
   const filtered = useMemo(() => {
     if (!query.trim()) return allPaths;
@@ -21,16 +27,16 @@ export function QuickOpen() {
     return allPaths.filter((p) => p.toLowerCase().includes(q));
   }, [allPaths, query]);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [filtered.length]);
+  const activeIndex = filtered.length === 0
+    ? 0
+    : Math.min(selectedIndex, filtered.length - 1);
 
   // Scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return;
-    const item = listRef.current.children[selectedIndex] as HTMLElement;
+    const item = listRef.current.children[activeIndex] as HTMLElement;
     if (item) item.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex]);
+  }, [activeIndex, filtered.length]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -57,6 +63,7 @@ export function QuickOpen() {
 
   function handleSelect(path: string) {
     selectFile(path);
+    setViewMode("code");
     setOpen(false);
   }
 
@@ -69,7 +76,7 @@ export function QuickOpen() {
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
     } else if (e.key === "Enter" && filtered.length > 0) {
       e.preventDefault();
-      handleSelect(filtered[selectedIndex]);
+      handleSelect(filtered[activeIndex]);
     }
   }
 
@@ -131,7 +138,7 @@ export function QuickOpen() {
                   key={path}
                   onClick={() => handleSelect(path)}
                   className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors ${
-                    i === selectedIndex
+                    i === activeIndex
                       ? "bg-accent/10 text-accent"
                       : "text-foreground hover:bg-surface-hover"
                   }`}

@@ -6,15 +6,19 @@ import { initialFiles } from "./mock-data";
 interface EditorStore {
   files: Record<string, SqlFile>;
   selectedFile: string | null;
+  selectedFolder: string | null;
   expandedFolders: Set<string>;
+  sidebarWidth: number;
   darkMode: boolean;
   environment: Environment;
   diffCollapsed: boolean;
 
   selectFile: (path: string) => void;
+  selectFolder: (path: string) => void;
   updateContent: (path: string, content: string) => void;
   saveFile: (path: string) => void;
   toggleFolder: (path: string) => void;
+  setSidebarWidth: (width: number) => void;
   toggleDarkMode: () => void;
   toggleDiffPanel: () => void;
   setEnvironment: (env: Environment) => void;
@@ -32,13 +36,18 @@ export const useEditorStore = create<EditorStore>()(
     (set, get) => ({
       files: initialFiles,
       selectedFile: null,
+      selectedFolder: null,
       expandedFolders: new Set<string>(),
+      sidebarWidth: 256,
       darkMode: false,
       environment: "dev",
       diffCollapsed: false,
 
       selectFile: (path) =>
-        set({ selectedFile: path }),
+        set({ selectedFile: path, selectedFolder: null }),
+
+      selectFolder: (path) =>
+        set({ selectedFolder: path, selectedFile: null }),
 
       updateContent: (path, content) =>
         set((state) => ({
@@ -79,6 +88,9 @@ export const useEditorStore = create<EditorStore>()(
           return { expandedFolders: next };
         }),
 
+      setSidebarWidth: (width) =>
+        set({ sidebarWidth: width }),
+
       toggleDarkMode: () =>
         set((state) => {
           const next = !state.darkMode;
@@ -101,6 +113,7 @@ export const useEditorStore = create<EditorStore>()(
             [path]: { content: "", savedContent: "", status: "draft" },
           },
           selectedFile: path,
+          selectedFolder: null,
         })),
 
       submitFile: (path) => {
@@ -208,7 +221,9 @@ export const useEditorStore = create<EditorStore>()(
         set({
           files: initialFiles,
           selectedFile: null,
+          selectedFolder: null,
           expandedFolders: new Set<string>(),
+          sidebarWidth: 256,
           darkMode: false,
           environment: "dev",
           diffCollapsed: false,

@@ -4,6 +4,33 @@ Registro visual de cambios implementados en Unified Batch Tools.
 
 ---
 
+## [Fase 11-Feb / Phase 1] Navigation foundation (folder selection + resizable sidebar + global search consistency)
+
+Se implementaron los ajustes base de UX para navegación y layout del editor:
+
+### Como se ve
+
+![Folder selection in file tree](screenshots/phase1-folder-selection.png)
+![Resizable sidebar in code mode](screenshots/phase1-resizable-sidebar.png)
+![Quick open from pipeline mode returns to code mode](screenshots/phase1-quick-open-cross-mode.png)
+
+### Como funciona
+- El file tree ahora permite **seleccionar carpetas** (además de expandir/colapsar), con estado visual persistido en store.
+- Se agregó **split resizable** entre sidebar y editor en Code Mode:
+  - drag handle vertical,
+  - límites de ancho mínimos/máximos,
+  - ancho persistido en Zustand (`sidebarWidth`).
+- Se mejoró legibilidad para nombres largos en el tree (`truncate` + `title` + `min-w-0`).
+- `QuickOpen` ahora:
+  - filtra rutas DDL para respetar la policy de invisibilidad DDL,
+  - al seleccionar resultado, fuerza modo `code` para evitar pérdida de contexto al buscar desde `pipeline`.
+
+### Scaffold / TODOs
+- Mocking adicional: no aplica en esta fase (solo UX/state).
+- TODO explícito para fase siguiente: reutilizar `selectedFolder` para abrir DAG config al seleccionar root folder en `Pipelines Pro`.
+
+---
+
 ## [Fase 1A] Login dummy con roles
 
 Pantalla de login con dos usuarios hardcodeados: **Data Engineer** (role: user, puede hacer submit) y **Team Leader** (role: leader, puede aprobar merges a prod). Sin credenciales reales — click para entrar.

@@ -63,13 +63,16 @@ function SqlFileIcon() {
 
 export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
   const selectedFile = useEditorStore((s) => s.selectedFile);
+  const selectedFolder = useEditorStore((s) => s.selectedFolder);
   const expandedFolders = useEditorStore((s) => s.expandedFolders);
   const files = useEditorStore((s) => s.files);
   const toggleFolder = useEditorStore((s) => s.toggleFolder);
   const selectFile = useEditorStore((s) => s.selectFile);
+  const selectFolder = useEditorStore((s) => s.selectFolder);
 
   const isExpanded = expandedFolders.has(node.path);
   const isSelected = selectedFile === node.path;
+  const isFolderSelected = selectedFolder === node.path;
   const file = !node.isFolder ? files[node.path] : null;
   const isModified = file ? file.content !== file.savedContent : false;
 
@@ -77,14 +80,22 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
 
   if (node.isFolder) {
     return (
-      <div role="treeitem" aria-expanded={isExpanded}>
+      <div role="treeitem" aria-expanded={isExpanded} aria-selected={isFolderSelected}>
         <div
-          className="flex items-center gap-1.5 py-1 cursor-pointer hover:bg-surface-hover text-foreground rounded-sm mx-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm"
+          className={`flex items-center gap-1.5 py-1 cursor-pointer rounded-sm mx-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm min-w-0 ${
+            isFolderSelected
+              ? "bg-accent/10 text-foreground"
+              : "hover:bg-surface-hover text-foreground"
+          }`}
           style={{ paddingLeft }}
-          onClick={() => toggleFolder(node.path)}
+          onClick={() => {
+            selectFolder(node.path);
+            toggleFolder(node.path);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
+              selectFolder(node.path);
               toggleFolder(node.path);
             }
           }}
@@ -108,7 +119,9 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
             </svg>
           </span>
           <FolderIcon open={isExpanded} />
-          <span className="truncate text-xs">{node.name}</span>
+          <span className="truncate text-xs min-w-0" title={node.name}>
+            {node.name}
+          </span>
         </div>
         {isExpanded &&
           <div role="group">
@@ -123,7 +136,7 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
 
   return (
     <div
-      className={`flex items-center gap-1.5 py-1 cursor-pointer rounded-sm mx-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm ${
+      className={`flex items-center gap-1.5 py-1 cursor-pointer rounded-sm mx-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm min-w-0 ${
         isSelected
           ? "bg-accent/15 text-foreground"
           : "text-text-secondary hover:bg-surface-hover"
@@ -142,7 +155,9 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
       aria-label={`${node.name}${isModified ? " (modified)" : ""}`}
     >
       <SqlFileIcon />
-      <span className="truncate">{node.name}</span>
+      <span className="truncate flex-1 min-w-0" title={node.name}>
+        {node.name}
+      </span>
       {isModified && (
         <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
       )}

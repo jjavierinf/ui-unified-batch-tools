@@ -28,10 +28,9 @@ export function TagEditor({ tags, onAdd, onRemove, allTags }: TagEditorProps) {
         )
       : [];
 
-  // Reset selected index when suggestions change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [suggestions.length]);
+  const activeIndex = suggestions.length === 0
+    ? 0
+    : Math.min(selectedIndex, suggestions.length - 1);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -63,7 +62,7 @@ export function TagEditor({ tags, onAdd, onRemove, allTags }: TagEditorProps) {
     if (e.key === "Enter") {
       e.preventDefault();
       if (suggestions.length > 0 && showSuggestions) {
-        addTag(suggestions[selectedIndex] || suggestions[0]);
+        addTag(suggestions[activeIndex] || suggestions[0]);
       } else if (input.trim()) {
         addTag(input.trim());
       }
@@ -145,7 +144,7 @@ export function TagEditor({ tags, onAdd, onRemove, allTags }: TagEditorProps) {
                   addTag(suggestion);
                 }}
                 className={`w-full text-left px-3 py-1.5 text-sm cursor-pointer transition-colors ${
-                  i === selectedIndex
+                  i === activeIndex
                     ? "bg-accent/10 text-accent"
                     : "text-foreground hover:bg-surface-hover"
                 }`}
