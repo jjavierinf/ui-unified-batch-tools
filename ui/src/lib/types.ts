@@ -45,6 +45,7 @@ export interface DqaConfig {
 
 export interface TaskConfig {
   expectedWorkload?: WorkloadLevel;
+  targetTableName?: string;
   connection?: TaskConnection;
   query?: TaskQueryConfig;
   loadTarget?: LoadTarget;
