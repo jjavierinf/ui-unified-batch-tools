@@ -3,9 +3,10 @@ import { isDdlTask } from "./task-type-utils";
 
 const PRIORITY: Record<FileStatus, number> = {
   draft: 0,
-  submitted: 1,
-  pending_approval: 2,
-  approved: 3,
+  saved_local: 1,
+  submitted: 2,
+  pending_approval: 3,
+  approved: 4,
 };
 
 export function getPipelineStatus(

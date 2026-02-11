@@ -1,5 +1,10 @@
 export type Environment = "dev" | "prod";
-export type FileStatus = "draft" | "submitted" | "pending_approval" | "approved";
+export type FileStatus =
+  | "draft"
+  | "saved_local"
+  | "submitted"
+  | "pending_approval"
+  | "approved";
 
 export interface SqlFile {
   content: string;

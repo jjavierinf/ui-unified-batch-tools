@@ -13,6 +13,7 @@
   --text-secondary: #6b7280;
   --text-tertiary: #9ca3af;
   --badge-draft: #9ca3af;
+  --badge-saved: #f97316;
   --badge-submitted: #3b82f6;
   --badge-pending: #f59e0b;
   --badge-approved: #22c55e;
@@ -31,6 +32,7 @@
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
   --badge-draft: #6b7280;
+  --badge-saved: #fb923c;
   --badge-submitted: #60a5fa;
   --badge-pending: #fbbf24;
   --badge-approved: #4ade80;
@@ -49,6 +51,7 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
   --color-badge-draft: var(--badge-draft);
+  --color-badge-saved: var(--badge-saved);
   --color-badge-submitted: var(--badge-submitted);
   --color-badge-pending: var(--badge-pending);
   --color-badge-approved: var(--badge-approved);

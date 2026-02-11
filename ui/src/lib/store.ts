@@ -25,6 +25,8 @@ interface EditorStore {
   setEnvironment: (env: Environment) => void;
   createFile: (path: string) => void;
   submitFile: (path: string) => void;
+  pushToDev: () => Promise<{ pushed: number }>;
+  pushToProd: () => Promise<{ pushed: number; mockPrId?: string }>;
   approveFile: (path: string) => void;
   rejectFile: (path: string) => void;
   approveAll: () => void;
@@ -67,10 +69,14 @@ export const useEditorStore = create<EditorStore>()(
         const state = get();
         const file = state.files[path];
         if (!file) return;
+        const nextStatus =
+          file.status === "draft" || file.status === "saved_local"
+            ? "saved_local"
+            : file.status;
         set({
           files: {
             ...state.files,
-            [path]: { ...file, savedContent: file.content },
+            [path]: { ...file, savedContent: file.content, status: nextStatus },
           },
         });
         // Async git save (fire-and-forget, UI stays responsive)
@@ -142,6 +148,75 @@ export const useEditorStore = create<EditorStore>()(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ filePath: path, content: file.content }),
         }).catch(() => { /* git repo may not be available */ });
+      },
+
+      pushToDev: async () => {
+        const state = get();
+        const candidates = Object.entries(state.files).filter(
+          ([, file]) =>
+            file.status === "saved_local" && file.content === file.savedContent
+        );
+
+        if (candidates.length === 0) return { pushed: 0 };
+
+        const now = new Date().toISOString();
+        set({
+          files: Object.fromEntries(
+            Object.entries(state.files).map(([path, file]) => [
+              path,
+              candidates.find(([candidatePath]) => candidatePath === path)
+                ? { ...file, status: "submitted", submittedAt: now }
+                : file,
+            ])
+          ),
+        });
+
+        await Promise.allSettled(
+          candidates.map(([path, file]) =>
+            fetch("/api/git/submit-dev", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ filePath: path, content: file.content }),
+            })
+          )
+        );
+
+        return { pushed: candidates.length };
+      },
+
+      pushToProd: async () => {
+        const state = get();
+        const candidates = Object.entries(state.files).filter(
+          ([, file]) =>
+            (file.status === "saved_local" || file.status === "submitted") &&
+            file.content === file.savedContent
+        );
+
+        if (candidates.length === 0) return { pushed: 0 };
+
+        const now = new Date().toISOString();
+        set({
+          files: Object.fromEntries(
+            Object.entries(state.files).map(([path, file]) => [
+              path,
+              candidates.find(([candidatePath]) => candidatePath === path)
+                ? { ...file, status: "pending_approval", submittedAt: now }
+                : file,
+            ])
+          ),
+        });
+
+        await Promise.allSettled(
+          candidates.map(([path, file]) =>
+            fetch("/api/git/submit-prod", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ filePath: path, content: file.content }),
+            })
+          )
+        );
+
+        return { pushed: candidates.length, mockPrId: `MOCK-PR-${Date.now().toString().slice(-6)}` };
       },
 
       approveFile: (path) => {
