@@ -15,13 +15,18 @@ const config: Record<
     bgClass: "bg-badge-draft/15 text-badge-draft",
     dotClass: "bg-badge-draft",
   },
+  saved_local: {
+    label: "Saved",
+    bgClass: "bg-badge-saved/15 text-badge-saved",
+    dotClass: "bg-badge-saved",
+  },
   submitted: {
-    label: "Submitted",
+    label: "Pushed Dev",
     bgClass: "bg-badge-submitted/15 text-badge-submitted",
     dotClass: "bg-badge-submitted",
   },
   pending_approval: {
-    label: "Pending",
+    label: "Pending Review",
     bgClass: "bg-badge-pending/15 text-badge-pending",
     dotClass: "bg-badge-pending",
   },

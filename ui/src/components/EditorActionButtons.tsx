@@ -6,27 +6,12 @@ import { useToastStore } from "@/lib/toast-store";
 export function EditorActionButtons() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
-  const environment = useEditorStore((s) => s.environment);
-  const submitFile = useEditorStore((s) => s.submitFile);
   const saveFile = useEditorStore((s) => s.saveFile);
 
   const addToast = useToastStore((s) => s.addToast);
 
   const file = selectedFile ? files[selectedFile] : null;
   const isModified = file ? file.content !== file.savedContent : false;
-  const canSubmit = file ? isModified || file.status === "draft" : false;
-
-  const submitLabel =
-    environment === "dev" ? "Submit to Dev" : "Submit to Prod";
-
-  const handleSubmit = () => {
-    if (selectedFile && canSubmit) {
-      submitFile(selectedFile);
-      const filename = selectedFile.split("/").pop() ?? selectedFile;
-      const target = environment === "dev" ? "Dev" : "Prod";
-      addToast(`${filename} submitted to ${target}`);
-    }
-  };
 
   const handleSave = () => {
     if (selectedFile && isModified) {
@@ -38,7 +23,6 @@ export function EditorActionButtons() {
 
   return (
     <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
-      {/* Save button (only when modified) */}
       {isModified && (
         <div className="group relative">
           <button
@@ -66,39 +50,6 @@ export function EditorActionButtons() {
           </span>
         </div>
       )}
-
-      {/* Submit button */}
-      <div className="relative group">
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className={`h-9 rounded-full flex items-center gap-1.5 px-4 text-xs font-medium shadow-md transition-all ${
-            canSubmit
-              ? "bg-accent text-white hover:bg-accent/80 hover:scale-105 cursor-pointer"
-              : "bg-surface border border-sidebar-border text-text-tertiary cursor-not-allowed"
-          }`}
-          aria-label={submitLabel}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          {environment === "dev" ? "Dev" : "Prod"}
-        </button>
-
-        {/* Tooltip */}
-        <span className="pointer-events-none absolute bottom-full right-0 mb-2 whitespace-nowrap rounded bg-foreground text-background text-[10px] px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {submitLabel}
-        </span>
-      </div>
     </div>
   );
 }
