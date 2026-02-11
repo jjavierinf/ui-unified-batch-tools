@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { OnMount } from "@monaco-editor/react";
 import { useEditorStore } from "@/lib/store";
+import { useWorkspaceStore } from "@/lib/workspace-store";
 
 const MonacoEditor = dynamic(
   () => import("@monaco-editor/react").then((m) => m.default),
@@ -30,6 +31,8 @@ export function SqlEditorSlideOut({
   const updateContent = useEditorStore((s) => s.updateContent);
   const saveFile = useEditorStore((s) => s.saveFile);
   const darkMode = useEditorStore((s) => s.darkMode);
+  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
+  const setPipelineSubMode = useWorkspaceStore((s) => s.setPipelineSubMode);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const [closing, setClosing] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
@@ -80,6 +83,12 @@ export function SqlEditorSlideOut({
   const handleSave = useCallback(() => {
     saveFile(filePath);
   }, [filePath, saveFile]);
+
+  const handleOpenInProEditor = useCallback(() => {
+    onOpenInCodeMode();
+    setViewMode("pipeline");
+    setPipelineSubMode("pro");
+  }, [onOpenInCodeMode, setPipelineSubMode, setViewMode]);
 
   if (!file) return null;
 
@@ -134,7 +143,7 @@ export function SqlEditorSlideOut({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={onOpenInCodeMode}
+              onClick={handleOpenInProEditor}
               className="flex items-center gap-1.5 text-xs text-accent hover:text-accent/80 bg-accent/10 hover:bg-accent/15 px-3 py-1.5 rounded-md transition-colors cursor-pointer"
             >
               <svg
@@ -150,7 +159,7 @@ export function SqlEditorSlideOut({
                 <polyline points="16 18 22 12 16 6" />
                 <polyline points="8 6 2 12 8 18" />
               </svg>
-              Open in Code Mode
+              Open in Pro Editor
             </button>
             <button
               onClick={handleClose}

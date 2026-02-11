@@ -27,6 +27,7 @@ Alcance implementado:
   - `Simple`: board de pipelines (overview/detail con tareas y config DAG), equivalente al modo “pro” anterior.
   - `Pro`: editor de archivos SQL completo (file tree + edición + diff/git flow), equivalente al SQL editor anterior.
 - `Quick Open` ahora abre archivo en `Pipelines -> Pro` para mantener el flujo de edición.
+- Desde el slide-out de tareas en `Simple`, el CTA ahora abre explícitamente `Pipelines -> Pro` (`Open in Pro Editor`) para mantener continuidad de edición con tree/diff/git.
 
 ## Evidencia visual
 
@@ -54,6 +55,19 @@ Qué mirar:
 - Se ve file tree SQL + editor.
 - Se ve barra de acciones (`Dev/Prod`, submit, diff/changes), preservando flujo git scaffold.
 
+### Simple -> Pro handoff (dark)
+![Phase 3 Simple slideout open pro button dark](../screenshots/phase3-simple-slideout-open-pro-button-dark.png)
+
+Qué mirar:
+- En el slide-out se ve el botón `Open in Pro Editor`.
+- El contexto parte desde `Simple` (detalle de pipeline con task list), no desde `SQL Explorer`.
+
+![Phase 3 Simple to Pro transition dark](../screenshots/phase3-simple-to-pro-transition-dark.png)
+
+Qué mirar:
+- Luego del click, queda activo `Pipelines` con submodo `Pro`.
+- Se abre el editor completo con file tree y SQL activo para seguir edición/diff.
+
 ## Límites scaffold
 - `SQL Explorer` sigue sin ejecución real contra motor (mock explícito).
 - No se agregó backend real de metadata/catalog; resultado SQL es simulado.
@@ -66,6 +80,3 @@ Qué mirar:
 - `cd ui && npm run lint` (sin errores; warnings existentes no bloqueantes).
 - `cd ui && npm run build` (ok).
 - Validación visual en Chrome vía Playwright (capturas dark mode).
-
-## Commit de fase
-- _pendiente_
