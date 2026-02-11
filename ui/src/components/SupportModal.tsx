@@ -4,11 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useToastStore } from "@/lib/toast-store";
 
 interface SupportModalProps {
-  isOpen: boolean;
   onClose: () => void;
 }
 
-export function SupportModal({ isOpen, onClose }: SupportModalProps) {
+export function SupportModal({ onClose }: SupportModalProps) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Medium");
@@ -16,20 +15,14 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
   const addToast = useToastStore((s) => s.addToast);
   const subjectRef = useRef<HTMLInputElement>(null);
 
-  // Reset form when modal opens
+  // Autofocus subject on mount
   useEffect(() => {
-    if (isOpen) {
-      setSubject("");
-      setDescription("");
-      setPriority("Medium");
-      setCategory("Bug Report");
-      setTimeout(() => subjectRef.current?.focus(), 50);
-    }
-  }, [isOpen]);
+    const timeout = setTimeout(() => subjectRef.current?.focus(), 50);
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Escape key closes modal
   useEffect(() => {
-    if (!isOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -38,9 +31,7 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  }, [onClose]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

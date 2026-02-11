@@ -13,6 +13,7 @@ type SidebarTab = "explorer" | "pipeline";
 export function Sidebar() {
   const files = useEditorStore((s) => s.files);
   const selectedFile = useEditorStore((s) => s.selectedFile);
+  const selectedFolder = useEditorStore((s) => s.selectedFolder);
   const expandedFolders = useEditorStore((s) => s.expandedFolders);
   const createFile = useEditorStore((s) => s.createFile);
   const tasks = usePipelineStore((s) => s.tasks);
@@ -60,7 +61,7 @@ export function Sidebar() {
     const expandedArr = Array.from(expandedFolders).sort(
       (a, b) => b.split("/").length - a.split("/").length
     );
-    const targetFolder = expandedArr.length > 0 ? expandedArr[0] : "dags";
+    const targetFolder = selectedFolder || (expandedArr.length > 0 ? expandedArr[0] : "dags");
 
     const fullPath = `${targetFolder}/${finalName}`;
     createFile(fullPath);
@@ -78,7 +79,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-56 min-w-56 bg-sidebar-bg border-r border-sidebar-border flex flex-col h-full">
+    <aside className="w-full min-w-0 bg-sidebar-bg border-r border-sidebar-border flex flex-col h-full">
       {/* Tab switcher */}
       <div className="flex border-b border-sidebar-border">
         <button
