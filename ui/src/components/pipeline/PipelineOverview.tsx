@@ -2,8 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { usePipelineStore } from "@/lib/pipeline-store";
+import { useEditorStore } from "@/lib/store";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { isDdlTask } from "@/lib/task-type-utils";
+import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
+import { StatusBadge } from "@/components/StatusBadge";
 import type { DagConfig } from "@/lib/types";
 
 const typeBadge: Record<string, string> = {
@@ -14,8 +17,11 @@ const typeBadge: Record<string, string> = {
 export function PipelineOverview() {
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
   const tasks = usePipelineStore((s) => s.tasks);
+  const files = useEditorStore((s) => s.files);
+  const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const selectPipeline = usePipelineStore((s) => s.selectPipeline);
   const [search, setSearch] = useState("");
+  const [groupBy, setGroupBy] = useState<"tag" | "integration">("tag");
 
   const filtered = useMemo(() => {
     if (!search.trim()) return dagConfigs;
@@ -31,14 +37,34 @@ export function PipelineOverview() {
   const grouped = useMemo(() => {
     const groups: Record<string, DagConfig[]> = {};
     for (const dag of filtered) {
-      const groupKey = dag.tags[0] ?? dag.integrationName;
-      (groups[groupKey] ??= []).push(dag);
+      if (groupBy === "integration") {
+        (groups[dag.integrationName] ??= []).push(dag);
+        continue;
+      }
+
+      const nonIntegrationTags = dag.tags.filter(
+        (tag) => tag.toLowerCase() !== dag.integrationName.toLowerCase()
+      );
+      const tagsToUse = nonIntegrationTags.length > 0 ? nonIntegrationTags : ["untagged"];
+      for (const tag of tagsToUse) {
+        (groups[tag] ??= []).push(dag);
+      }
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  }, [filtered, groupBy]);
 
   const taskCountFor = (dagName: string) =>
     tasks.filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath)).length;
+
+  const cycleStatus = (dagName: string) => {
+    const current = getPipelineStatus(files, tasks, dagName);
+    const next = getNextStatus(current);
+    const targetPaths = tasks
+      .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
+      .map((t) => t.sqlFilePath);
+    if (targetPaths.length === 0) return;
+    setFilesStatus(targetPaths, next);
+  };
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-background">
@@ -79,6 +105,38 @@ export function PipelineOverview() {
           <span className="text-xs text-text-tertiary whitespace-nowrap">
             {filtered.length} of {dagConfigs.length} DAGs
           </span>
+          <div className="inline-flex rounded-md border border-sidebar-border overflow-hidden">
+            <div data-tour="group-toggle" className="inline-flex">
+            <button
+              onClick={() => setGroupBy("tag")}
+              className={`px-2 py-1 text-[10px] cursor-pointer ${
+                groupBy === "tag"
+                  ? "bg-accent text-white"
+                  : "text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              by tag
+            </button>
+            <button
+              onClick={() => setGroupBy("integration")}
+              className={`px-2 py-1 text-[10px] cursor-pointer ${
+                groupBy === "integration"
+                  ? "bg-accent text-white"
+                  : "text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              by integration
+            </button>
+            </div>
+          </div>
+        </div>
+        <div data-tour="status-legend" className="mt-2 flex items-center gap-2 text-[10px] text-text-tertiary">
+          <span className="uppercase tracking-wider">Status legend</span>
+          <span title={STATUS_MEANING.draft}><StatusBadge status="draft" /></span>
+          <span title={STATUS_MEANING.submitted}><StatusBadge status="submitted" /></span>
+          <span title={STATUS_MEANING.pending_approval}><StatusBadge status="pending_approval" /></span>
+          <span title={STATUS_MEANING.approved}><StatusBadge status="approved" /></span>
+          <span className="ml-1">Use status button per row to cycle in scaffold.</span>
         </div>
       </div>
 
@@ -123,11 +181,12 @@ export function PipelineOverview() {
 
                 {/* Table header */}
                 <div className="bg-surface border border-sidebar-border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-[1fr_90px_140px_60px_auto_28px] gap-2 px-4 py-1.5 border-b border-sidebar-border text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
+                  <div className="grid grid-cols-[1fr_90px_140px_60px_80px_auto_28px] gap-2 px-4 py-1.5 border-b border-sidebar-border text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
                     <span>Pipeline</span>
                     <span>Type</span>
                     <span>Schedule</span>
                     <span className="text-right">Tasks</span>
+                    <span>Status</span>
                     <span>Tags</span>
                     <span></span>
                   </div>
@@ -145,7 +204,7 @@ export function PipelineOverview() {
                       <button
                         key={dag.dagName}
                         onClick={() => selectPipeline(dag.dagName)}
-                        className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
+                        className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_80px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                           i % 2 === 1 ? "bg-surface-hover/30" : ""
                         }`}
                       >
@@ -169,6 +228,20 @@ export function PipelineOverview() {
                         </span>
                         <span className="text-xs text-text-tertiary text-right tabular-nums">
                           {count}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <StatusBadge status={getPipelineStatus(files, tasks, dag.dagName)} />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cycleStatus(dag.dagName);
+                            }}
+                            data-tour="status-cycle"
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                            title="Cycle status for this pipeline (scaffold)"
+                          >
+                            cycle
+                          </button>
                         </span>
                         <div className="flex gap-1 overflow-hidden">
                           {dag.tags

@@ -1,10 +1,11 @@
 import { PipelineTask } from "./types";
 import { isDdlTask } from "./task-type-utils";
+import { deepAnonymize } from "./demo-mode";
 
 // 5 tasks per DAG × 5 DAGs = 25 tasks
 // Pattern per DAG: create_table_stage → create_table_data_model → extract_and_load → data_model_task → delete_logs
 
-export const initialPipelineTasks: PipelineTask[] = [
+const RAW_INITIAL_PIPELINE_TASKS: PipelineTask[] = [
   // ── dag_CRM_integration_dbo_AccountReference (snapshot) ──
   {
     id: "crm-acctref-1",
@@ -329,6 +330,8 @@ export const initialPipelineTasks: PipelineTask[] = [
     },
   },
 ];
+
+export const initialPipelineTasks: PipelineTask[] = deepAnonymize(RAW_INITIAL_PIPELINE_TASKS);
 
 export function getTasksForPipeline(tasks: PipelineTask[], dagName: string): PipelineTask[] {
   return tasks
