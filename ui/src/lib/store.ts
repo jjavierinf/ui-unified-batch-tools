@@ -43,7 +43,7 @@ export const useEditorStore = create<EditorStore>()(
       selectedFolder: null,
       expandedFolders: new Set<string>(),
       sidebarWidth: 256,
-      darkMode: false,
+      darkMode: true,
       environment: "dev",
       diffCollapsed: false,
 
@@ -324,7 +324,7 @@ export const useEditorStore = create<EditorStore>()(
           selectedFolder: null,
           expandedFolders: new Set<string>(),
           sidebarWidth: 256,
-          darkMode: false,
+          darkMode: true,
           environment: "dev",
           diffCollapsed: false,
         }),
