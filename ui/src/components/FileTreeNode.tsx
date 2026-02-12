@@ -161,7 +161,7 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
       {isModified && (
         <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
       )}
-      {file && file.status !== "draft" && (
+      {file && (
         <span className="ml-auto mr-2 shrink-0">
           <StatusBadge status={file.status} />
         </span>

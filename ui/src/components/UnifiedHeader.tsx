@@ -3,6 +3,7 @@
 import { useEditorStore } from "@/lib/store";
 import { useWorkspaceStore, ViewMode } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
+import { useWhatsNewStore } from "@/lib/whats-new-store";
 import { EnvironmentToggle } from "./EnvironmentToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
@@ -74,6 +75,7 @@ export function UnifiedHeader() {
   const files = useEditorStore((s) => s.files);
   const saveFile = useEditorStore((s) => s.saveFile);
   const currentUser = useAuthStore((s) => s.currentUser);
+  const openWhatsNew = useWhatsNewStore((s) => s.open);
 
   const isLeader = currentUser?.role === "leader";
   const tabs = isLeader ? [...baseTabs, reviewsTab] : baseTabs;
@@ -101,6 +103,7 @@ export function UnifiedHeader() {
           <button
             key={tab.key}
             onClick={() => setViewMode(tab.key)}
+            data-tour={tab.key === "pipeline" ? "nav-pipelines" : undefined}
             className={`flex items-center gap-1.5 px-3 h-full text-xs font-medium border-b-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
               viewMode === tab.key
                 ? "text-foreground border-accent"
@@ -120,6 +123,21 @@ export function UnifiedHeader() {
 
       <div className="flex items-center gap-2">
         <BranchIndicator />
+        <button
+          onClick={openWhatsNew}
+          className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+        >
+          What&apos;s new
+        </button>
+        <a
+          href="/changelog/current"
+          target="_blank"
+          rel="noreferrer"
+          data-tour="whats-new-link-pdf"
+          className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover"
+        >
+          Current PDF
+        </a>
         <EnvironmentToggle />
         <ThemeToggle />
         <UserMenu />

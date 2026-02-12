@@ -5,12 +5,18 @@ import { usePipelineStore } from "@/lib/pipeline-store";
 import { describeCron, formatNextRun, nextRunMinutes } from "@/lib/cron-utils";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useEditorStore } from "@/lib/store";
+import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
+import { isDdlTask } from "@/lib/task-type-utils";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export function PipelineSimpleView() {
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
   const tasks = usePipelineStore((s) => s.tasks);
   const selectPipeline = usePipelineStore((s) => s.selectPipeline);
   const setPipelineSubMode = useWorkspaceStore((s) => s.setPipelineSubMode);
+  const files = useEditorStore((s) => s.files);
+  const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -23,6 +29,16 @@ export function PipelineSimpleView() {
         dag.tags.some((t) => t.toLowerCase().includes(q))
     );
   }, [dagConfigs, search]);
+
+  const cycleStatus = (dagName: string) => {
+    const current = getPipelineStatus(files, tasks, dagName);
+    const next = getNextStatus(current);
+    const targetPaths = tasks
+      .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
+      .map((t) => t.sqlFilePath);
+    if (targetPaths.length === 0) return;
+    setFilesStatus(targetPaths, next);
+  };
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-background">
@@ -71,6 +87,23 @@ export function PipelineSimpleView() {
                 <span className="px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">
                   {dag.dagType}
                 </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                {(() => {
+                  const status = getPipelineStatus(files, tasks, dag.dagName);
+                  return (
+                    <span title={STATUS_MEANING[status]}>
+                      <StatusBadge status={status} />
+                    </span>
+                  );
+                })()}
+                <button
+                  onClick={() => cycleStatus(dag.dagName)}
+                  className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                  title="Cycle status for this pipeline (scaffold)"
+                >
+                  cycle
+                </button>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <button
