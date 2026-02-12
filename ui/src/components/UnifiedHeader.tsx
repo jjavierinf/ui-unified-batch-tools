@@ -4,6 +4,7 @@ import { useEditorStore } from "@/lib/store";
 import { useWorkspaceStore, ViewMode } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useWhatsNewStore } from "@/lib/whats-new-store";
+import { useToastStore } from "@/lib/toast-store";
 import { EnvironmentToggle } from "./EnvironmentToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
@@ -74,8 +75,11 @@ export function UnifiedHeader() {
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
   const files = useEditorStore((s) => s.files);
   const saveFile = useEditorStore((s) => s.saveFile);
+  const pushToDev = useEditorStore((s) => s.pushToDev);
+  const pushToProd = useEditorStore((s) => s.pushToProd);
   const currentUser = useAuthStore((s) => s.currentUser);
   const openWhatsNew = useWhatsNewStore((s) => s.open);
+  const addToast = useToastStore((s) => s.addToast);
 
   const isLeader = currentUser?.role === "leader";
   const tabs = isLeader ? [...baseTabs, reviewsTab] : baseTabs;
@@ -89,11 +93,41 @@ export function UnifiedHeader() {
   );
   const modifiedCount = modifiedFiles.length;
   const hasChanges = modifiedCount > 0;
+  const canPushDev = Object.values(files).some(
+    (f) => f.status === "saved_local" && f.content === f.savedContent
+  );
+  const canPushProd = Object.values(files).some(
+    (f) =>
+      (f.status === "saved_local" || f.status === "submitted") &&
+      f.content === f.savedContent
+  );
 
   const handleSaveAll = () => {
     for (const [path] of modifiedFiles) {
       saveFile(path);
     }
+    if (modifiedFiles.length > 0) {
+      addToast(`${modifiedFiles.length} file(s) saved locally`, "info");
+    }
+  };
+
+  const handlePushDev = async () => {
+    const result = await pushToDev();
+    if (result.pushed === 0) {
+      addToast("No saved files ready to push to Dev", "info");
+      return;
+    }
+    addToast(`${result.pushed} file(s) pushed to Dev`);
+  };
+
+  const handlePushProd = async () => {
+    const result = await pushToProd();
+    if (result.pushed === 0) {
+      addToast("No saved files ready to push to Prod", "info");
+      return;
+    }
+    const suffix = result.mockPrId ? ` · PR ${result.mockPrId}` : "";
+    addToast(`${result.pushed} file(s) sent to review${suffix}`);
   };
 
   return (
@@ -144,6 +178,7 @@ export function UnifiedHeader() {
 
         <button
           onClick={handleSaveAll}
+          data-tour="workspace-save-all"
           disabled={!hasChanges}
           className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
             hasChanges
@@ -157,6 +192,30 @@ export function UnifiedHeader() {
               {modifiedCount}
             </span>
           )}
+        </button>
+        <button
+          onClick={handlePushDev}
+          data-tour="workspace-push-dev"
+          disabled={!canPushDev}
+          className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+            canPushDev
+              ? "bg-badge-submitted text-white hover:bg-badge-submitted/80 cursor-pointer"
+              : "bg-surface-hover text-text-tertiary cursor-not-allowed"
+          }`}
+        >
+          Push Dev
+        </button>
+        <button
+          onClick={handlePushProd}
+          data-tour="workspace-push-prod"
+          disabled={!canPushProd}
+          className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+            canPushProd
+              ? "bg-badge-pending text-black hover:bg-badge-pending/80 cursor-pointer"
+              : "bg-surface-hover text-text-tertiary cursor-not-allowed"
+          }`}
+        >
+          Push Prod
         </button>
       </div>
     </header>

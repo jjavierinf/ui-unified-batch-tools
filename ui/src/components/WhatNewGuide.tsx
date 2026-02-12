@@ -5,7 +5,7 @@ import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 import { useWhatsNewStore } from "@/lib/whats-new-store";
 import { useWorkspaceStore } from "@/lib/workspace-store";
 
-const WHATS_NEW_VERSION = "2026-02-11-phase4-guide-v1";
+const WHATS_NEW_VERSION = "2026-02-11-phase5-guide-v1";
 
 type PlanStatus = "done" | "current" | "future" | "out";
 
@@ -19,14 +19,14 @@ const planItems: PlanItem[] = [
   { label: "1. Base UX de navegación y layout", status: "done" },
   { label: "2. Stage folders en mock/repo de test", status: "done" },
   { label: "3. SQL Explorer + Pipelines Simple/Pro", status: "done" },
-  { label: "4. YAML task config + cohesión DAG/task", status: "current" },
-  { label: "5. Save/Push workflow", status: "future" },
+  { label: "4. YAML task config + cohesión DAG/task", status: "done" },
+  { label: "5. Save/Push workflow", status: "current" },
   { label: "6. Alta pipeline + DnD hardening", status: "future" },
 ];
 
 const outOfScopeItems = [
   "Ejecución real de queries en base de datos.",
-  "Creación real de PR/notificaciones en proveedor git.",
+  "Creación real de PR/notificaciones en proveedor git (hoy: MOCK-PR).",
 ];
 
 export function WhatNewGuide() {
@@ -46,24 +46,28 @@ export function WhatNewGuide() {
     () => [
       {
         target: '[data-tour="nav-pipelines"]',
-        content: "Pipelines es el espacio principal de operación.",
+        content: "Abrí Pipelines para ver estado agregado de cada flujo.",
         disableBeacon: true,
       },
       {
-        target: '[data-tour="group-toggle"]',
-        content: "Acá cambiás agrupación real: por tag o por integration.",
+        target: '[data-tour="workspace-save-all"]',
+        content: "Paso 1: Save all. Guarda cambios locales y mueve a estado Saved.",
+      },
+      {
+        target: '[data-tour="workspace-push-dev"]',
+        content: "Paso 2: Push Dev. Sube todo lo Saved a Dev en batch.",
+      },
+      {
+        target: '[data-tour="workspace-push-prod"]',
+        content: "Paso 3: Push Prod. Marca pending review y emite PR mock.",
       },
       {
         target: '[data-tour="status-legend"]',
-        content: "Leyenda de estados para entender badges y su significado.",
-      },
-      {
-        target: '[data-tour="status-cycle"]',
-        content: "En scaffold podés ciclar estados por fila para demo.",
+        content: "Estos badges muestran el lifecycle real del archivo/pipeline.",
       },
       {
         target: '[data-tour="whats-new-link-pdf"]',
-        content: "Este link abre el PDF actual de cambios de la branch.",
+        content: "Este link abre el PDF más nuevo (en esta branch, fase 5).",
       },
     ],
     []
@@ -118,7 +122,7 @@ export function WhatNewGuide() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">What&apos;s new</h2>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Hybrid: tour guiado + checklist del plan de trabajo
+                  Fase 5: save/push workflow + checklist del plan
                 </p>
               </div>
               <button
