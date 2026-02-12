@@ -7,7 +7,7 @@ import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useEditorStore } from "@/lib/store";
 
-const WHATS_NEW_VERSION = "2026-02-12-phase12-guide-v1";
+const WHATS_NEW_VERSION = "2026-02-12-phase19-guide-v1";
 type PlanStatus = "done" | "current" | "future" | "out";
 
 interface PlanItem {
@@ -28,7 +28,14 @@ const planItems: PlanItem[] = [
   { label: "9. DDL visible + DQA realista (2 tipos)", status: "done" },
   { label: "10. Pro folder focus -> pipeline summary", status: "done" },
   { label: "11. SQL Explorer manage connections", status: "done" },
-  { label: "12. Safety guardrails (Team Leader)", status: "current" },
+  { label: "12. Safety guardrails (Team Leader)", status: "done" },
+  { label: "13. Status labels humanos + modal Prod", status: "done" },
+  { label: "14. Header hierarchy + Push clarity", status: "done" },
+  { label: "15. Task cards config summary", status: "done" },
+  { label: "16. SQL Explorer DBeaver clicks + breadcrumb", status: "done" },
+  { label: "17. Manage connections UX guardrails", status: "done" },
+  { label: "18. Safety guardrails callouts", status: "done" },
+  { label: "19. Joyride storytelling + fallbacks", status: "current" },
 ];
 
 const outOfScopeItems = [
@@ -62,32 +69,32 @@ export function WhatNewGuide() {
           disableBeacon: true,
         },
         {
+          target: '[data-tour="status-legend"]',
+          content: "Estos badges muestran el lifecycle del archivo/pipeline. Tip: en scaffold podés ciclar status por fila.",
+        },
+        {
+          target: '[data-tour="create-pipeline-button"]',
+          content: "Alta rápida: Create pipeline (1 paso) para seedear tasks extract/transform/load/ddl/dqa.",
+        },
+        {
+          target: '[data-tour="create-pipeline-modal"]',
+          content: "Completá integration, name, type y schedule. (Mock, pero con estructura realista.)",
+        },
+        {
+          target: '[data-tour="create-pipeline-submit"]',
+          content: "Crea DAG + tasks seed y abre el pipeline para editar.",
+        },
+        {
           target: '[data-tour="workspace-save-all"]',
           content: "Paso 1: Save all. Guarda cambios locales y mueve a estado Saved.",
         },
         {
           target: '[data-tour="environment-toggle"]',
-          content: "Paso 2: elegí Dev o Prod. Esto define a dónde van las acciones de submit/push (no es checkout de branch).",
+          content: "Paso 2: elegí Dev o Prod. Define submit/push (no es checkout de branch).",
         },
         {
           target: '[data-tour="workspace-push"]',
           content: "Paso 3: Push. En Dev sube el batch; en Prod abre confirmación y lo manda a review (requiere Team Leader).",
-        },
-        {
-          target: '[data-tour="create-pipeline-button"]',
-          content: "Fase 6: alta rápida de pipeline en 1 paso.",
-        },
-        {
-          target: '[data-tour="create-pipeline-modal"]',
-          content: "Modal mínimo: integration, name, type y schedule.",
-        },
-        {
-          target: '[data-tour="create-pipeline-submit"]',
-          content: "Crea DAG + tasks seed (ddl/extract/transform/load/dqa) y abre en Pro.",
-        },
-        {
-          target: '[data-tour="status-legend"]',
-          content: "Estos badges muestran el lifecycle real del archivo/pipeline.",
         },
         {
           target: '[data-tour="whats-new-link-pdf"]',
@@ -98,11 +105,11 @@ export function WhatNewGuide() {
       if (isLeader) {
         baseSteps.push({
           target: '[data-tour="nav-safety"]',
-          content: "Nuevo: Safety (leader-only). Define guardrails de equipo para Explorer y Pipes.",
+          content: "Safety (leader-only): define guardrails de equipo (Explorer y Pipes).",
         });
         baseSteps.push({
           target: '[data-tour="nav-reviews"]',
-          content: "Como líder, en Reviews ves lo pendiente de aprobación.",
+          content: "En Reviews ves lo pendiente de aprobación (Prod).",
         });
         if (pendingReviewCount > 0) {
           baseSteps.push({
@@ -194,7 +201,7 @@ export function WhatNewGuide() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">What&apos;s new</h2>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Fase 12: safety enforces (leader) + enforcement mock visible
+                  Fase 19: joyride storytelling + demo fallbacks (sin regresiones)
                 </p>
               </div>
               <button
