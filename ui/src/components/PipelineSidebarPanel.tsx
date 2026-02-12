@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePipelineStore } from "@/lib/pipeline-store";
-import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useEditorStore } from "@/lib/store";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron } from "@/lib/cron-utils";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
 import { isDdlTask } from "@/lib/task-type-utils";
 import { StatusBadge } from "./StatusBadge";
+import { DagConfigEditor } from "./pipeline/DagConfigEditor";
+import { TaskConfigPanel } from "./pipeline/TaskConfigPanel";
 
 interface PipelineSidebarPanelProps {
   dagName: string;
@@ -23,11 +24,16 @@ const typeBadge: Record<string, string> = {
 export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const tasks = usePipelineStore((s) => s.tasks);
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
-  const selectPipeline = usePipelineStore((s) => s.selectPipeline);
-  const setViewMode = useWorkspaceStore((s) => s.setViewMode);
+  const updateDagSchedule = usePipelineStore((s) => s.updateDagSchedule);
+  const addDagTag = usePipelineStore((s) => s.addDagTag);
+  const removeDagTag = usePipelineStore((s) => s.removeDagTag);
+  const updateDagField = usePipelineStore((s) => s.updateDagField);
+  const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
   const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
+  const selectFile = useEditorStore((s) => s.selectFile);
+  const [showDagConfig, setShowDagConfig] = useState(false);
 
   const config = dagConfigs.find((d) => d.dagName === dagName);
 
@@ -35,15 +41,14 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
     () => getNonDdlTasksForPipeline(tasks, dagName),
     [tasks, dagName]
   );
+  const allTags = useMemo(
+    () => Array.from(new Set(dagConfigs.flatMap((d) => d.tags))).sort(),
+    [dagConfigs]
+  );
 
   if (!config) return null;
 
   const displayName = config.dagName.replace(/^dag_/, "");
-
-  const handleOpenInPipelineMode = () => {
-    selectPipeline(dagName);
-    setViewMode("pipeline");
-  };
 
   const pipelineStatus = getPipelineStatus(files, tasks, dagName);
 
@@ -55,6 +60,8 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);
   };
+
+  const activeTask = pipelineTasks.find((t) => t.sqlFilePath === selectedFile);
 
   return (
     <div className="flex flex-col h-full">
@@ -168,6 +175,28 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
           </div>
         )}
 
+        <div className="px-3 py-2.5 border-b border-sidebar-border">
+          <button
+            onClick={() => setShowDagConfig((v) => !v)}
+            className="w-full text-left text-[11px] px-2 py-1.5 rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+          >
+            {showDagConfig ? "Hide DAG params" : "Edit DAG params"}
+          </button>
+        </div>
+
+        {showDagConfig && (
+          <div className="h-[260px] border-b border-sidebar-border">
+            <DagConfigEditor
+              config={config}
+              onUpdateSchedule={(v) => updateDagSchedule(config.dagName, v)}
+              onAddTag={(tag) => addDagTag(config.dagName, tag)}
+              onRemoveTag={(tag) => removeDagTag(config.dagName, tag)}
+              onUpdateField={(field, value) => updateDagField(config.dagName, field, value)}
+              allTags={allTags}
+            />
+          </div>
+        )}
+
         {/* Task order */}
         <div className="px-3 py-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
@@ -199,10 +228,11 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
               return (
                 <div
                   key={task.id}
+                  onClick={() => selectFile(task.sqlFilePath)}
                   className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
                     isCurrent
                       ? "bg-accent/10 text-accent font-medium"
-                      : "text-text-secondary"
+                      : "text-text-secondary hover:bg-surface-hover cursor-pointer"
                   }`}
                 >
                   <span className="text-[10px] text-text-tertiary w-3 text-right shrink-0">
@@ -229,29 +259,13 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
               );
             })}
           </div>
-        </div>
-      </div>
 
-      {/* Open in Pipeline Mode button */}
-      <div className="px-3 py-2.5 border-t border-sidebar-border">
-        <button
-          onClick={handleOpenInPipelineMode}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-accent bg-accent/10 rounded-md hover:bg-accent/20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          Open in Pipeline Mode
-        </button>
+          {activeTask?.taskConfig && (
+            <div className="mt-2 px-2 py-2 rounded-md border border-sidebar-border bg-background/50">
+              <TaskConfigPanel task={activeTask} onUpdateConfig={updateTaskConfig} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
