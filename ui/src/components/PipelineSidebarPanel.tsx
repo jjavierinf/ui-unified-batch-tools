@@ -133,7 +133,7 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
           <button
             onClick={simulateRun}
             className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-            title="Simulate run with Safety enforces (scaffold)"
+            title="Simulate run with Safety guardrails (scaffold)"
           >
             simulate run
           </button>
