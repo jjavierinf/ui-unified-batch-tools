@@ -69,6 +69,7 @@ export function PipelineView() {
           </div>
           <button
             onClick={() => setOpenCreate(true)}
+            data-tour="create-pipeline-button"
             className="px-3 py-1.5 text-xs rounded-md border border-sidebar-border bg-background text-foreground hover:bg-surface-hover transition-colors cursor-pointer"
           >
             Create pipeline
@@ -82,7 +83,7 @@ export function PipelineView() {
       {pipelineSubMode === "simple" ? <PipelineBoard /> : <SqlFileWorkbench />}
 
       {openCreate && (
-        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+        <div data-tour="create-pipeline-modal" className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
           <form
             onSubmit={handleCreate}
             className="w-full max-w-lg rounded-lg border border-sidebar-border bg-surface p-4 space-y-3"
@@ -157,6 +158,7 @@ export function PipelineView() {
               </button>
               <button
                 type="submit"
+                data-tour="create-pipeline-submit"
                 className="px-3 py-1.5 text-xs rounded-md bg-accent text-white hover:bg-accent/85 cursor-pointer"
               >
                 Create and open in Pro
