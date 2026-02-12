@@ -180,6 +180,7 @@ export function CodeView() {
   const addConnection = useSqlExplorerStore((s) => s.addConnection);
   const updateConnection = useSqlExplorerStore((s) => s.updateConnection);
   const removeConnection = useSqlExplorerStore((s) => s.removeConnection);
+  const resetConnections = useSqlExplorerStore((s) => s.resetToDefaults);
   const safety = useSafetyStore((s) => s.config);
 
   const [activeDb, setActiveDb] = useState<string | null>(null);
@@ -410,12 +411,22 @@ export function CodeView() {
                   This is scaffold-only. Connections share the same mock schema dataset.
                 </p>
               </div>
-              <button
-                onClick={() => setShowManage(false)}
-                className="text-xs text-text-tertiary hover:text-foreground cursor-pointer"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => resetConnections()}
+                  className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                  title="Reset to seeded demo connections"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => setShowManage(false)}
+                  className="text-xs text-text-tertiary hover:text-foreground cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="p-4 space-y-3">
@@ -425,12 +436,26 @@ export function CodeView() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => addConnection({ name: `demo_connection_${connections.length + 1}` })}
+                  onClick={() =>
+                    addConnection({
+                      name: `demo_connection_${connections.length + 1}`,
+                      host: "mock-sql.custom.internal",
+                    })
+                  }
                   className="px-3 py-1.5 text-xs rounded-md bg-accent text-white hover:bg-accent/85 cursor-pointer"
                 >
                   Add connection
                 </button>
               </div>
+
+              {connections.length === 0 && (
+                <div className="rounded-md border border-sidebar-border bg-background p-3">
+                  <p className="text-sm text-foreground font-medium">No connections</p>
+                  <p className="text-xs text-text-secondary mt-1">
+                    Add a connection to start browsing schemas, or reset to demo defaults.
+                  </p>
+                </div>
+              )}
 
               <div className="border border-sidebar-border rounded-md overflow-hidden bg-background">
                 <div className="grid grid-cols-[1fr_1fr_90px] gap-2 px-3 py-2 bg-surface-hover/40 text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
@@ -442,6 +467,8 @@ export function CodeView() {
                   {connections.map((c) => {
                     const isActive = c.id === connectionId;
                     const canRemove = connections.length > 1;
+                    const nameOk = c.name.trim().length > 0;
+                    const hostOk = c.host.trim().length > 0;
                     return (
                       <div
                         key={c.id}
@@ -453,14 +480,18 @@ export function CodeView() {
                           type="text"
                           value={c.name}
                           onChange={(e) => updateConnection(c.id, { name: e.target.value })}
-                          className="w-full border border-sidebar-border rounded-md px-2 py-1 bg-background text-foreground text-xs"
+                          className={`w-full border rounded-md px-2 py-1 bg-background text-foreground text-xs ${
+                            nameOk ? "border-sidebar-border" : "border-red-500"
+                          }`}
                           spellCheck={false}
                         />
                         <input
                           type="text"
                           value={c.host}
                           onChange={(e) => updateConnection(c.id, { host: e.target.value })}
-                          className="w-full border border-sidebar-border rounded-md px-2 py-1 bg-background text-foreground text-xs font-mono"
+                          className={`w-full border rounded-md px-2 py-1 bg-background text-foreground text-xs font-mono ${
+                            hostOk ? "border-sidebar-border" : "border-red-500"
+                          }`}
                           spellCheck={false}
                         />
                         <div className="flex items-center justify-end gap-2">
@@ -477,7 +508,15 @@ export function CodeView() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => removeConnection(c.id)}
+                            onClick={() => {
+                              if (isActive) {
+                                const ok = window.confirm(
+                                  "Remove the active connection? (Scaffold-only: this does not affect any real DB.)"
+                                );
+                                if (!ok) return;
+                              }
+                              removeConnection(c.id);
+                            }}
                             disabled={!canRemove}
                             className={`text-[11px] px-2 py-1 rounded border border-sidebar-border ${
                               canRemove
@@ -489,6 +528,11 @@ export function CodeView() {
                             Remove
                           </button>
                         </div>
+                        {(!nameOk || !hostOk) && (
+                          <div className="col-span-3 text-[11px] text-red-400 -mt-1">
+                            {!nameOk ? "Name is required." : ""} {!hostOk ? "Host is required." : ""}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
