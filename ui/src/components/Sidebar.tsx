@@ -3,11 +3,10 @@
 import { useMemo, useEffect } from "react";
 import { useEditorStore } from "@/lib/store";
 import { usePipelineStore } from "@/lib/pipeline-store";
-import { useWorkspaceStore } from "@/lib/workspace-store";
 import { buildTree } from "@/lib/file-utils";
 import { isTransparentSystemDdlPath } from "@/lib/task-type-utils";
-import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { FileTree } from "./FileTree";
+import { PipelineSidebarPanel } from "./PipelineSidebarPanel";
 
 export function Sidebar() {
   const files = useEditorStore((s) => s.files);
@@ -18,9 +17,6 @@ export function Sidebar() {
 
   const tasks = usePipelineStore((s) => s.tasks);
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
-  const selectPipeline = usePipelineStore((s) => s.selectPipeline);
-
-  const setPipelineSubMode = useWorkspaceStore((s) => s.setPipelineSubMode);
 
   const allPaths = useMemo(
     () => Object.keys(files).filter((p) => !isTransparentSystemDdlPath(p)),
@@ -68,19 +64,6 @@ export function Sidebar() {
     return fromFolder?.dagName ?? null;
   }, [selectedFile, selectedFolder, tasks, dagConfigs]);
 
-  const pipelineContext = useMemo(() => {
-    if (!pipelineDagName) return null;
-    const config = dagConfigs.find((d) => d.dagName === pipelineDagName);
-    if (!config) return null;
-    const taskCount = getNonDdlTasksForPipeline(tasks, pipelineDagName).length;
-    return {
-      dagName: pipelineDagName,
-      displayName: pipelineDagName.replace(/^dag_/, ""),
-      integration: config.integrationName,
-      taskCount,
-    };
-  }, [dagConfigs, pipelineDagName, tasks]);
-
   return (
     <aside className="w-full min-w-0 bg-sidebar-bg border-r border-sidebar-border flex flex-col h-full">
       <div className="px-3 py-2.5 border-b border-sidebar-border">
@@ -110,29 +93,13 @@ export function Sidebar() {
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-1">
+      <div className="flex-1 min-h-0 overflow-y-auto py-1">
         <FileTree nodes={tree} />
       </div>
 
-      {pipelineContext && (
-        <div data-tour="pro-handoff-context" className="border-t border-sidebar-border px-3 py-2 bg-surface/50">
-          <p className="text-[10px] uppercase tracking-wider text-text-tertiary">Pipeline context</p>
-          <p className="text-xs text-foreground truncate mt-1" title={pipelineContext.displayName}>
-            {pipelineContext.displayName}
-          </p>
-          <p className="text-[10px] text-text-tertiary mt-0.5">
-            {pipelineContext.integration} · {pipelineContext.taskCount} tasks
-          </p>
-          <button
-            onClick={() => {
-              selectPipeline(pipelineContext.dagName);
-              setPipelineSubMode("simple");
-            }}
-            data-tour="pro-handoff-button"
-            className="mt-2 w-full text-[11px] px-2 py-1.5 rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-          >
-            Open pipeline handoff
-          </button>
+      {pipelineDagName && (
+        <div data-tour="pro-handoff-context" className="h-[42%] min-h-[260px] border-t border-sidebar-border bg-surface/50">
+          <PipelineSidebarPanel dagName={pipelineDagName} />
         </div>
       )}
     </aside>

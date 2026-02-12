@@ -28,13 +28,21 @@ export function EnvironmentToggle() {
   const setEnvironment = useEditorStore((s) => s.setEnvironment);
 
   return (
-    <div className="flex items-center rounded-full border border-sidebar-border overflow-hidden bg-surface-hover p-0.5 gap-0.5">
+    <div
+      className="flex items-center rounded-full border border-sidebar-border overflow-hidden bg-surface-hover p-0.5 gap-0.5"
+      title="Submission environment (not a git branch checkout)"
+    >
       {options.map((opt) => {
         const isActive = environment === opt.value;
         return (
           <button
             key={opt.value}
             onClick={() => setEnvironment(opt.value)}
+            title={
+              opt.value === "dev"
+                ? "Send submit/push actions to Dev flow"
+                : "Send submit/push actions to Prod review flow"
+            }
             className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-full transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
               isActive
                 ? `${opt.activeClass} shadow-sm`

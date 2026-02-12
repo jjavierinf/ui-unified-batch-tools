@@ -15,6 +15,9 @@ export function PipelineView() {
   const createPipeline = usePipelineStore((s) => s.createPipeline);
   const seedFiles = useEditorStore((s) => s.seedFiles);
   const setSelectedFile = useEditorStore((s) => s.selectFile);
+  const focusFolder = useEditorStore((s) => s.focusFolder);
+  const expandedFolders = useEditorStore((s) => s.expandedFolders);
+  const setExpandedFolders = useEditorStore((s) => s.setExpandedFolders);
   const addToast = useToastStore((s) => s.addToast);
   const [openCreate, setOpenCreate] = useState(false);
   const [integrationName, setIntegrationName] = useState("NEW_integration");
@@ -32,6 +35,15 @@ export function PipelineView() {
       timezone: "UTC",
     });
     seedFiles(result.files);
+
+    const nextExpanded = new Set(expandedFolders);
+    const parts = result.rootFolderPath.split("/");
+    for (let i = 1; i <= parts.length; i += 1) {
+      nextExpanded.add(parts.slice(0, i).join("/"));
+    }
+    setExpandedFolders(nextExpanded);
+    focusFolder(result.rootFolderPath);
+
     if (result.files[0]?.path) {
       setSelectedFile(result.files[0].path);
     }

@@ -17,6 +17,7 @@ interface CreatePipelineInput {
 interface CreatePipelineResult {
   dagName: string;
   displayFolder: string;
+  rootFolderPath: string;
   files: Array<{ path: string; content: string }>;
 }
 
@@ -250,7 +251,7 @@ export const usePipelineStore = create<PipelineStore>()(
           };
         });
 
-        return { dagName, displayFolder, files: fileSeed };
+        return { dagName, displayFolder, rootFolderPath: basePath, files: fileSeed };
       },
 
       resetToDefaults: () =>

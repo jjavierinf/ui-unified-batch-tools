@@ -15,6 +15,7 @@ interface EditorStore {
 
   selectFile: (path: string) => void;
   selectFolder: (path: string) => void;
+  focusFolder: (path: string) => void;
   updateContent: (path: string, content: string) => void;
   saveFile: (path: string) => void;
   toggleFolder: (path: string) => void;
@@ -53,6 +54,9 @@ export const useEditorStore = create<EditorStore>()(
 
       selectFolder: (path) =>
         set({ selectedFolder: path, selectedFile: null }),
+
+      focusFolder: (path) =>
+        set({ selectedFolder: path }),
 
       updateContent: (path, content) =>
         set((state) => ({
