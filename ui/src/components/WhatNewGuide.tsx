@@ -7,8 +7,8 @@ import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useEditorStore } from "@/lib/store";
 
-const WHATS_NEW_VERSION = "2026-02-11-phase5-guide-v1";
-const BASE_STEP_COUNT = 6;
+const WHATS_NEW_VERSION = "2026-02-11-phase6-guide-v1";
+const BASE_STEP_COUNT = 8;
 
 type PlanStatus = "done" | "current" | "future" | "out";
 
@@ -23,8 +23,8 @@ const planItems: PlanItem[] = [
   { label: "2. Stage folders en mock/repo de test", status: "done" },
   { label: "3. SQL Explorer + Pipelines Simple/Pro", status: "done" },
   { label: "4. YAML task config + cohesión DAG/task", status: "done" },
-  { label: "5. Save/Push workflow", status: "current" },
-  { label: "6. Alta pipeline + DnD hardening", status: "future" },
+  { label: "5. Save/Push workflow", status: "done" },
+  { label: "6. Alta pipeline + DnD hardening", status: "current" },
 ];
 
 const outOfScopeItems = [
@@ -68,6 +68,18 @@ export function WhatNewGuide() {
         {
           target: '[data-tour="workspace-push-prod"]',
           content: "Paso 3: Push Prod. Marca pending review y emite PR mock.",
+        },
+        {
+          target: '[data-tour="create-pipeline-button"]',
+          content: "Fase 6: alta rápida de pipeline en 1 paso.",
+        },
+        {
+          target: '[data-tour="create-pipeline-modal"]',
+          content: "Modal mínimo: integration, name, type y schedule.",
+        },
+        {
+          target: '[data-tour="create-pipeline-submit"]',
+          content: "Crea DAG + tasks seed (extract/transform/load/dqa) y abre en Pro.",
         },
         {
           target: '[data-tour="status-legend"]',
@@ -163,7 +175,7 @@ export function WhatNewGuide() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">What&apos;s new</h2>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Fase 5: save/push workflow + checklist del plan
+                  Fase 6: create pipeline + DnD hardening
                 </p>
               </div>
               <button
