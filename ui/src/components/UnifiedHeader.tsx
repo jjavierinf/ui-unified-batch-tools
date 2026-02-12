@@ -182,31 +182,16 @@ export function UnifiedHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <BranchIndicator />
-          <button
-            onClick={openWhatsNew}
-            className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-          >
-            What&apos;s new
-          </button>
-          <a
-            href="/changelog/current"
-            target="_blank"
-            rel="noreferrer"
-            data-tour="whats-new-link-pdf"
-            className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover"
-          >
-            Current PDF
-          </a>
-          <EnvironmentToggle />
-          <ThemeToggle />
-          <UserMenu />
+          <div className="flex items-center gap-2 pr-2 border-r border-sidebar-border">
+            <BranchIndicator />
+            <EnvironmentToggle />
+          </div>
 
           <button
             onClick={handleSaveAll}
             data-tour="workspace-save-all"
             disabled={!canSave}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
               canSave
                 ? "bg-accent text-white hover:bg-accent/80 cursor-pointer"
                 : "bg-surface-hover text-text-tertiary cursor-not-allowed"
@@ -224,7 +209,7 @@ export function UnifiedHeader() {
             onClick={handlePush}
             data-tour="workspace-push"
             disabled={!canPush}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
               canPush
                 ? environment === "dev"
                   ? "bg-badge-submitted text-white hover:bg-badge-submitted/80 cursor-pointer"
@@ -234,11 +219,63 @@ export function UnifiedHeader() {
             title={
               environment === "dev"
                 ? "Push saved files to Dev"
-                : "Send saved files to review (Prod requires Team Leader approval)"
+                : "Open review summary and send to Team Leader approval (Prod)"
             }
           >
-            Push ({environment === "dev" ? "Dev" : "Prod"})
+            <span className="inline-flex items-center gap-1.5">
+              {environment === "dev" ? (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              ) : (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              )}
+              Push ({environment === "dev" ? "Dev" : "Prod"})
+            </span>
           </button>
+
+          <div className="flex items-center gap-2 pl-2 border-l border-sidebar-border">
+            <button
+              onClick={openWhatsNew}
+              className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+            >
+              What&apos;s new
+            </button>
+            <a
+              href="/changelog/current"
+              target="_blank"
+              rel="noreferrer"
+              data-tour="whats-new-link-pdf"
+              className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover"
+            >
+              Current PDF
+            </a>
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
       </header>
 

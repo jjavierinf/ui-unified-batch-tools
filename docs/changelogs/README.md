@@ -16,3 +16,4 @@ Este directorio guarda changelogs por iteración/branch sin tocar el historial p
 - `2026-02-12-phase-11-sql-explorer-manage-connections.md`
 - `2026-02-12-phase-12-safety-enforces-leader.md`
 - `2026-02-12-phase-13-status-labels-prod-modal-copy.md`
+- `2026-02-12-phase-14-header-hierarchy-push-clarity.md`
