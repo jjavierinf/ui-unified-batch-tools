@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { SqlFile, Environment } from "./types";
+import { SqlFile, Environment, FileStatus } from "./types";
 import { initialFiles } from "./mock-data";
 
 interface EditorStore {
@@ -24,6 +24,7 @@ interface EditorStore {
   toggleDiffPanel: () => void;
   setEnvironment: (env: Environment) => void;
   createFile: (path: string) => void;
+  setFilesStatus: (paths: string[], status: FileStatus) => void;
   submitFile: (path: string) => void;
   approveFile: (path: string) => void;
   rejectFile: (path: string) => void;
@@ -119,6 +120,26 @@ export const useEditorStore = create<EditorStore>()(
           selectedFile: path,
           selectedFolder: null,
         })),
+
+      setFilesStatus: (paths, status) =>
+        set((state) => {
+          const nextFiles = { ...state.files };
+          const now = new Date().toISOString();
+          for (const path of paths) {
+            const file = nextFiles[path];
+            if (!file) continue;
+            nextFiles[path] = {
+              ...file,
+              status,
+              submittedAt:
+                status === "submitted" || status === "pending_approval"
+                  ? now
+                  : file.submittedAt,
+              approvedAt: status === "approved" ? now : file.approvedAt,
+            };
+          }
+          return { files: nextFiles };
+        }),
 
       submitFile: (path) => {
         const state = get();
