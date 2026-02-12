@@ -1,10 +1,11 @@
 import { SqlFile, DagConfig } from "./types";
+import { anonymizeFiles, deepAnonymize } from "./demo-mode";
 
 function f(content: string): SqlFile {
   return { content, savedContent: content, status: "draft" };
 }
 
-export const initialFiles: Record<string, SqlFile> = {
+const RAW_INITIAL_FILES: Record<string, SqlFile> = {
   // ── CRM_integration / AccountReference ──────────────────────────
   "dags/CRM_integration/AccountReference/ddl/create_table_stage.sql": f(
 `CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountReference (
@@ -544,7 +545,9 @@ CREATE DATABASE IF NOT EXISTS db_stage
   ),
 };
 
-export const dagConfigs: DagConfig[] = [
+export const initialFiles: Record<string, SqlFile> = anonymizeFiles(RAW_INITIAL_FILES);
+
+const RAW_DAG_CONFIGS: DagConfig[] = [
   {
     dagName: "dag_CRM_integration_dbo_AccountReference",
     integrationName: "CRM_integration",
@@ -611,3 +614,5 @@ export const dagConfigs: DagConfig[] = [
     alertsChannel: "#alerts-datasources",
   },
 ];
+
+export const dagConfigs: DagConfig[] = deepAnonymize(RAW_DAG_CONFIGS);

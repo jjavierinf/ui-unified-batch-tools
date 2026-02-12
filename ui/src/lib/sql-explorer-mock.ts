@@ -1,3 +1,5 @@
+import { deepAnonymize } from "./demo-mode";
+
 export interface MockTable {
   database: string;
   schema: string;
@@ -76,7 +78,7 @@ const MODEL_TABLES: MockTable[] = [
   },
 ];
 
-export const MOCK_CONNECTIONS: MockConnection[] = [
+const RAW_MOCK_CONNECTIONS: MockConnection[] = [
   {
     id: "demo-sqlserver-primary",
     name: "demo_sqlserver_primary",
@@ -112,6 +114,8 @@ export const MOCK_CONNECTIONS: MockConnection[] = [
     ],
   },
 ];
+
+export const MOCK_CONNECTIONS: MockConnection[] = deepAnonymize(RAW_MOCK_CONNECTIONS);
 
 function allTables(connection: MockConnection): MockTable[] {
   return connection.databases.flatMap((db) => db.schemas.flatMap((schema) => schema.tables));
