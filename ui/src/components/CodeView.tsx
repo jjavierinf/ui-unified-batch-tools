@@ -17,12 +17,20 @@ function SchemaBrowser({
   connection,
   connectionId,
   setQuery,
+  activeDb,
+  setActiveDb,
+  activeSchemaKey,
+  setActiveSchemaKey,
   activeTable,
   setActiveTable,
 }: {
   connection: MockConnection | null;
   connectionId: string;
   setQuery: (q: string) => void;
+  activeDb: string | null;
+  setActiveDb: (db: string | null) => void;
+  activeSchemaKey: string | null;
+  setActiveSchemaKey: (k: string | null) => void;
   activeTable: MockTable | null;
   setActiveTable: (t: MockTable | null) => void;
 }) {
@@ -60,11 +68,15 @@ function SchemaBrowser({
 
   const openSchemaTablesQuery = (db: MockDatabase, schema: MockSchema) => {
     setActiveTable(null);
+    setActiveDb(db.name);
+    setActiveSchemaKey(`${db.name}.${schema.name}`);
     setQuery(buildInfoSchemaTablesQuery(db.name, schema.name));
   };
 
   const openTableColumnsQuery = (table: MockTable) => {
     setActiveTable(table);
+    setActiveDb(table.database);
+    setActiveSchemaKey(`${table.database}.${table.schema}`);
     setQuery(buildInfoSchemaColumnsQuery(table.database, table.schema, table.name));
   };
 
@@ -72,26 +84,61 @@ function SchemaBrowser({
     <div className="flex-1 overflow-y-auto px-2 py-2">
       {connection?.databases.map((db) => (
         <div key={db.name} className="mb-1">
-          <button
-            onClick={() => toggleDb(db.name)}
-            className="w-full text-left px-2 py-1 text-xs text-foreground hover:bg-surface-hover rounded cursor-pointer"
-          >
-            {expandedDbs.has(db.name) ? "▾" : "▸"} {db.name}
-          </button>
+          <div className="flex items-center gap-1 px-1">
+            <button
+              type="button"
+              onClick={() => toggleDb(db.name)}
+              className="w-6 h-6 flex items-center justify-center rounded text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+              title={expandedDbs.has(db.name) ? "Collapse" : "Expand"}
+              aria-label={expandedDbs.has(db.name) ? "Collapse database" : "Expand database"}
+            >
+              {expandedDbs.has(db.name) ? "▾" : "▸"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveDb(db.name);
+                setActiveSchemaKey(null);
+                setActiveTable(null);
+              }}
+              className={`flex-1 text-left px-2 py-1 text-xs rounded cursor-pointer ${
+                activeDb === db.name && !activeSchemaKey && !activeTable
+                  ? "bg-accent/10 text-accent"
+                  : "text-foreground hover:bg-surface-hover"
+              }`}
+              title="Select database"
+            >
+              {db.name}
+            </button>
+          </div>
           {expandedDbs.has(db.name) &&
             db.schemas.map((schema) => {
               const schemaKey = `${db.name}.${schema.name}`;
               return (
                 <div key={schemaKey} className="ml-3">
-                  <button
-                    onClick={() => {
-                      toggleSchema(db.name, schema.name);
-                      openSchemaTablesQuery(db, schema);
-                    }}
-                    className="w-full text-left px-2 py-1 text-xs text-text-secondary hover:bg-surface-hover rounded cursor-pointer"
-                  >
-                    {expandedSchemas.has(schemaKey) ? "▾" : "▸"} {schema.name}
-                  </button>
+                  <div className="flex items-center gap-1 px-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleSchema(db.name, schema.name)}
+                      className="w-6 h-6 flex items-center justify-center rounded text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                      title={expandedSchemas.has(schemaKey) ? "Collapse" : "Expand"}
+                      aria-label={expandedSchemas.has(schemaKey) ? "Collapse schema" : "Expand schema"}
+                    >
+                      {expandedSchemas.has(schemaKey) ? "▾" : "▸"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openSchemaTablesQuery(db, schema)}
+                      className={`flex-1 text-left px-2 py-1 text-xs rounded cursor-pointer ${
+                        activeSchemaKey === schemaKey && !activeTable
+                          ? "bg-accent/10 text-accent"
+                          : "text-text-secondary hover:bg-surface-hover"
+                      }`}
+                      title="List tables (INFORMATION_SCHEMA)"
+                    >
+                      {schema.name}
+                    </button>
+                  </div>
                   {expandedSchemas.has(schemaKey) &&
                     schema.tables.map((table) => {
                       const key = `${table.database}.${table.schema}.${table.name}`;
@@ -109,6 +156,7 @@ function SchemaBrowser({
                               ? "bg-accent/10 text-accent"
                               : "text-text-tertiary hover:bg-surface-hover"
                           }`}
+                          title="List columns (INFORMATION_SCHEMA)"
                         >
                           {table.name}
                         </button>
@@ -134,6 +182,8 @@ export function CodeView() {
   const removeConnection = useSqlExplorerStore((s) => s.removeConnection);
   const safety = useSafetyStore((s) => s.config);
 
+  const [activeDb, setActiveDb] = useState<string | null>(null);
+  const [activeSchemaKey, setActiveSchemaKey] = useState<string | null>(null);
   const [activeTable, setActiveTable] = useState<MockTable | null>(null);
   const [showManage, setShowManage] = useState(false);
   const [query, setQuery] = useState("SELECT table_catalog, table_schema, table_name FROM information_schema.tables ORDER BY 1,2,3;");
@@ -228,6 +278,10 @@ export function CodeView() {
           connection={connection}
           connectionId={connectionId}
           setQuery={setQuery}
+          activeDb={activeDb}
+          setActiveDb={setActiveDb}
+          activeSchemaKey={activeSchemaKey}
+          setActiveSchemaKey={setActiveSchemaKey}
           activeTable={activeTable}
           setActiveTable={setActiveTable}
         />
@@ -247,6 +301,18 @@ export function CodeView() {
             </p>
             <p className="text-[10px] text-text-tertiary">
               Mock query runner (contract aligned to INFORMATION_SCHEMA)
+            </p>
+            <p className="text-[10px] text-text-tertiary mt-1">
+              Selection:{" "}
+              <span className="text-text-secondary">
+                {activeTable
+                  ? `${activeTable.database}.${activeTable.schema}.${activeTable.name}`
+                  : activeSchemaKey
+                    ? activeSchemaKey
+                    : activeDb
+                      ? activeDb
+                      : "none"}
+              </span>
             </p>
           </div>
           <button
