@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import type { OnMount } from "@monaco-editor/react";
 import { useEditorStore } from "@/lib/store";
 import { useWorkspaceStore } from "@/lib/workspace-store";
+import { StatusBadge } from "@/components/StatusBadge";
+import { getStatusUi } from "@/lib/status-ui";
 
 const MonacoEditor = dynamic(
   () => import("@monaco-editor/react").then((m) => m.default),
@@ -203,7 +205,10 @@ export function SqlEditorSlideOut({
               {stage}
             </span>
           )}
-          <span className="flex items-center gap-1">
+          <span
+            className="flex items-center gap-2"
+            title={getStatusUi(file.status).meaning}
+          >
             <svg
               width="10"
               height="10"
@@ -219,7 +224,8 @@ export function SqlEditorSlideOut({
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            Status: {file.status}
+            <span className="text-text-tertiary">Status</span>
+            <StatusBadge status={file.status} />
           </span>
           {hasChanges && (
             <span className="text-badge-pending flex items-center gap-1">
