@@ -5,9 +5,9 @@ import { usePipelineStore } from "@/lib/pipeline-store";
 import { useEditorStore } from "@/lib/store";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { isDdlTask } from "@/lib/task-type-utils";
-import { getPipelineStatus } from "@/lib/pipeline-status";
+import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { DagConfig, FileStatus } from "@/lib/types";
+import type { DagConfig } from "@/lib/types";
 
 const typeBadge: Record<string, string> = {
   snapshot: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -57,9 +57,8 @@ export function PipelineOverview() {
     tasks.filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath)).length;
 
   const cycleStatus = (dagName: string) => {
-    const order: FileStatus[] = ["draft", "submitted", "pending_approval", "approved"];
     const current = getPipelineStatus(files, tasks, dagName);
-    const next = order[(order.indexOf(current) + 1) % order.length];
+    const next = getNextStatus(current);
     const targetPaths = tasks
       .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
       .map((t) => t.sqlFilePath);
@@ -133,10 +132,10 @@ export function PipelineOverview() {
         </div>
         <div data-tour="status-legend" className="mt-2 flex items-center gap-2 text-[10px] text-text-tertiary">
           <span className="uppercase tracking-wider">Status legend</span>
-          <StatusBadge status="draft" />
-          <StatusBadge status="submitted" />
-          <StatusBadge status="pending_approval" />
-          <StatusBadge status="approved" />
+          <span title={STATUS_MEANING.draft}><StatusBadge status="draft" /></span>
+          <span title={STATUS_MEANING.submitted}><StatusBadge status="submitted" /></span>
+          <span title={STATUS_MEANING.pending_approval}><StatusBadge status="pending_approval" /></span>
+          <span title={STATUS_MEANING.approved}><StatusBadge status="approved" /></span>
           <span className="ml-1">Use status button per row to cycle in scaffold.</span>
         </div>
       </div>
