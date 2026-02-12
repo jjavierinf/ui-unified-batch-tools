@@ -29,6 +29,7 @@ export function EnvironmentToggle() {
 
   return (
     <div
+      data-tour="environment-toggle"
       className="flex items-center rounded-full border border-sidebar-border overflow-hidden bg-surface-hover p-0.5 gap-0.5"
       title="Submission environment (not a git branch checkout)"
     >

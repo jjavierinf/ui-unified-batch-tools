@@ -7,8 +7,8 @@ import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useEditorStore } from "@/lib/store";
 
-const WHATS_NEW_VERSION = "2026-02-11-phase6-guide-v1";
-const BASE_STEP_COUNT = 8;
+const WHATS_NEW_VERSION = "2026-02-12-phase7-guide-v1";
+const BASE_STEP_COUNT = 9;
 
 type PlanStatus = "done" | "current" | "future" | "out";
 
@@ -24,7 +24,8 @@ const planItems: PlanItem[] = [
   { label: "3. SQL Explorer + Pipelines Simple/Pro", status: "done" },
   { label: "4. YAML task config + cohesión DAG/task", status: "done" },
   { label: "5. Save/Push workflow", status: "done" },
-  { label: "6. Alta pipeline + DnD hardening", status: "current" },
+  { label: "6. Alta pipeline + DnD hardening", status: "done" },
+  { label: "7. Push unificado + confirmación Prod", status: "current" },
 ];
 
 const outOfScopeItems = [
@@ -62,12 +63,12 @@ export function WhatNewGuide() {
           content: "Paso 1: Save all. Guarda cambios locales y mueve a estado Saved.",
         },
         {
-          target: '[data-tour="workspace-push-dev"]',
-          content: "Paso 2: Push Dev. Sube todo lo Saved a Dev en batch.",
+          target: '[data-tour="environment-toggle"]',
+          content: "Paso 2: elegí Dev o Prod. Esto define a dónde van las acciones de submit/push (no es checkout de branch).",
         },
         {
-          target: '[data-tour="workspace-push-prod"]',
-          content: "Paso 3: Push Prod. Marca pending review y emite PR mock.",
+          target: '[data-tour="workspace-push"]',
+          content: "Paso 3: Push. En Dev sube el batch; en Prod abre confirmación y lo manda a review (requiere Team Leader).",
         },
         {
           target: '[data-tour="create-pipeline-button"]',
@@ -87,7 +88,7 @@ export function WhatNewGuide() {
         },
         {
           target: '[data-tour="whats-new-link-pdf"]',
-          content: "Este link abre el PDF más nuevo (en esta branch, fase 5).",
+          content: "Este link abre el PDF más nuevo (según el número de phase en docs/changelogs).",
         },
       ];
 
@@ -108,7 +109,7 @@ export function WhatNewGuide() {
         } else {
           baseSteps.push({
             target: '[data-tour="reviews-content"]',
-            content: "No hay pendientes ahora. Hacé Push Prod para generar una review.",
+            content: "No hay pendientes ahora. Cambiá a Prod y hacé Push para generar una review.",
           });
         }
       } else {
@@ -175,7 +176,7 @@ export function WhatNewGuide() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">What&apos;s new</h2>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Fase 6: create pipeline + DnD hardening
+                  Fase 7: push unificado + confirmación de Prod
                 </p>
               </div>
               <button
