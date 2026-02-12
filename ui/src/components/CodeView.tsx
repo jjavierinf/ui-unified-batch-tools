@@ -96,6 +96,53 @@ function Icon({
   );
 }
 
+function EngineIcon({
+  engine,
+  className,
+}: {
+  engine: string | undefined;
+  className?: string;
+}) {
+  const e = (engine ?? "").toLowerCase();
+
+  // “Logo-like” but generic (avoid real brand assets).
+  // SQL Server: database + SQL tag.
+  if (e.includes("sql server") || e.includes("mssql")) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-md border border-sidebar-border bg-surface-hover/40 px-1.5 py-1 text-[10px] font-semibold text-text-secondary ${className ?? ""}`}
+        title={engine}
+      >
+        <Icon kind="database" className="text-text-tertiary" />
+        SQL
+      </span>
+    );
+  }
+
+  // Postgres: database + PG tag.
+  if (e.includes("postgres")) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-md border border-sidebar-border bg-surface-hover/40 px-1.5 py-1 text-[10px] font-semibold text-text-secondary ${className ?? ""}`}
+        title={engine}
+      >
+        <Icon kind="database" className="text-text-tertiary" />
+        PG
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-md border border-sidebar-border bg-surface-hover/40 px-1.5 py-1 text-[10px] font-semibold text-text-secondary ${className ?? ""}`}
+      title={engine}
+    >
+      <Icon kind="database" className="text-text-tertiary" />
+      DB
+    </span>
+  );
+}
+
 function SchemaBrowser({
   connection,
   connectionId,
@@ -374,6 +421,7 @@ export function CodeView() {
                 )}
               </div>
               <div className="mt-1 flex items-center gap-2">
+                <EngineIcon engine={connection?.engine} />
                 <select
                   value={connectionId}
                   onChange={(e) => setConnectionId(e.target.value)}
@@ -462,7 +510,10 @@ export function CodeView() {
               </p>
               {connection && (
                 <span className="text-[10px] text-text-tertiary px-2 py-0.5 rounded-full border border-sidebar-border bg-surface-hover/40">
-                  {connection.engine}
+                  <span className="inline-flex items-center gap-1.5">
+                    <EngineIcon engine={connection.engine} className="border-0 bg-transparent px-0 py-0" />
+                    <span className="text-text-tertiary">{connection.engine}</span>
+                  </span>
                 </span>
               )}
             </div>
