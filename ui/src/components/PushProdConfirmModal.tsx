@@ -1,6 +1,8 @@
 "use client";
 
 import type { SqlFile } from "@/lib/types";
+import { StatusBadge } from "./StatusBadge";
+import { getStatusUi } from "@/lib/status-ui";
 
 interface Candidate {
   path: string;
@@ -64,6 +66,7 @@ export function PushProdConfirmModal({
             <div className="max-h-[280px] overflow-auto bg-background">
               {candidates.map(({ path, file }) => {
                 const hasDiff = file.content !== file.savedContent;
+                const diffLabel = hasDiff ? "Uncommitted changes" : "Ready";
                 return (
                   <div
                     key={path}
@@ -72,10 +75,14 @@ export function PushProdConfirmModal({
                     <span className="truncate text-foreground" title={path}>
                       {path}
                     </span>
-                    <span className="text-text-secondary">{file.status}</span>
-                    <span className="text-text-secondary">pending_approval</span>
-                    <span className="text-right text-text-secondary">
-                      {hasDiff ? "has diff" : "clean"}
+                    <span className="text-text-secondary" title={getStatusUi(file.status).meaning}>
+                      <StatusBadge status={file.status} />
+                    </span>
+                    <span className="text-text-secondary" title={getStatusUi("pending_approval").meaning}>
+                      <StatusBadge status="pending_approval" />
+                    </span>
+                    <span className="text-right text-text-secondary" title={diffLabel}>
+                      {diffLabel}
                     </span>
                   </div>
                 );
@@ -88,7 +95,9 @@ export function PushProdConfirmModal({
               What happens now
             </div>
             <ul className="mt-1 text-[11px] text-text-secondary list-disc pl-5 space-y-1">
-              <li>Files move to <code>pending_approval</code>.</li>
+              <li>
+                Files move to <span className="inline-block align-middle"><StatusBadge status="pending_approval" /></span>.
+              </li>
               <li>
                 A Team Leader must approve in <strong>Reviews</strong>.
               </li>
@@ -115,4 +124,3 @@ export function PushProdConfirmModal({
     </div>
   );
 }
-
