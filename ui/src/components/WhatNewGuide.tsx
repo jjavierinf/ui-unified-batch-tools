@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 import { useWhatsNewStore } from "@/lib/whats-new-store";
 import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useAuthStore } from "@/lib/auth-store";
+import { useEditorStore } from "@/lib/store";
 
 const WHATS_NEW_VERSION = "2026-02-11-phase5-guide-v1";
+const BASE_STEP_COUNT = 6;
 
 type PlanStatus = "done" | "current" | "future" | "out";
 
@@ -38,39 +41,74 @@ export function WhatNewGuide() {
 
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
   const setPipelineSubMode = useWorkspaceStore((s) => s.setPipelineSubMode);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const files = useEditorStore((s) => s.files);
 
   const [finishedSignal, setFinishedSignal] = useState(0);
   const runTour = startTourSignal > finishedSignal;
+  const isLeader = currentUser?.role === "leader";
+  const pendingReviewCount = Object.values(files).filter((f) => f.status === "pending_approval").length;
 
   const steps = useMemo<Step[]>(
-    () => [
-      {
-        target: '[data-tour="nav-pipelines"]',
-        content: "Abrí Pipelines para ver estado agregado de cada flujo.",
-        disableBeacon: true,
-      },
-      {
-        target: '[data-tour="workspace-save-all"]',
-        content: "Paso 1: Save all. Guarda cambios locales y mueve a estado Saved.",
-      },
-      {
-        target: '[data-tour="workspace-push-dev"]',
-        content: "Paso 2: Push Dev. Sube todo lo Saved a Dev en batch.",
-      },
-      {
-        target: '[data-tour="workspace-push-prod"]',
-        content: "Paso 3: Push Prod. Marca pending review y emite PR mock.",
-      },
-      {
-        target: '[data-tour="status-legend"]',
-        content: "Estos badges muestran el lifecycle real del archivo/pipeline.",
-      },
-      {
-        target: '[data-tour="whats-new-link-pdf"]',
-        content: "Este link abre el PDF más nuevo (en esta branch, fase 5).",
-      },
-    ],
-    []
+    () => {
+      const baseSteps: Step[] = [
+        {
+          target: '[data-tour="nav-pipelines"]',
+          content: "Abrí Pipelines para ver estado agregado de cada flujo.",
+          disableBeacon: true,
+        },
+        {
+          target: '[data-tour="workspace-save-all"]',
+          content: "Paso 1: Save all. Guarda cambios locales y mueve a estado Saved.",
+        },
+        {
+          target: '[data-tour="workspace-push-dev"]',
+          content: "Paso 2: Push Dev. Sube todo lo Saved a Dev en batch.",
+        },
+        {
+          target: '[data-tour="workspace-push-prod"]',
+          content: "Paso 3: Push Prod. Marca pending review y emite PR mock.",
+        },
+        {
+          target: '[data-tour="status-legend"]',
+          content: "Estos badges muestran el lifecycle real del archivo/pipeline.",
+        },
+        {
+          target: '[data-tour="whats-new-link-pdf"]',
+          content: "Este link abre el PDF más nuevo (en esta branch, fase 5).",
+        },
+      ];
+
+      if (isLeader) {
+        baseSteps.push({
+          target: '[data-tour="nav-reviews"]',
+          content: "Como líder, en Reviews ves lo pendiente de aprobación.",
+        });
+        if (pendingReviewCount > 0) {
+          baseSteps.push({
+            target: '[data-tour="approve-all"]',
+            content: "Approve All aprueba todo el lote pendiente.",
+          });
+          baseSteps.push({
+            target: '[data-tour="request-changes"]',
+            content: "Request Changes rechaza el lote y lo devuelve a draft.",
+          });
+        } else {
+          baseSteps.push({
+            target: '[data-tour="reviews-content"]',
+            content: "No hay pendientes ahora. Hacé Push Prod para generar una review.",
+          });
+        }
+      } else {
+        baseSteps.push({
+          target: '[data-tour="user-menu-trigger"]',
+          content: "Tip: cambiá a Team Leader desde el menú de usuario para probar Approve/Reject.",
+        });
+      }
+
+      return baseSteps;
+    },
+    [isLeader, pendingReviewCount]
   );
 
   useEffect(() => {
@@ -87,6 +125,9 @@ export function WhatNewGuide() {
   }, [setPipelineSubMode, setViewMode, startTourSignal]);
 
   const handleJoyride = (data: CallBackProps) => {
+    if (isLeader && data.index >= BASE_STEP_COUNT) {
+      setViewMode("approvals");
+    }
     const finished = data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED;
     if (finished) {
       setFinishedSignal(startTourSignal);

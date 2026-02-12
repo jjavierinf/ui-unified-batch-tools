@@ -137,7 +137,13 @@ export function UnifiedHeader() {
           <button
             key={tab.key}
             onClick={() => setViewMode(tab.key)}
-            data-tour={tab.key === "pipeline" ? "nav-pipelines" : undefined}
+            data-tour={
+              tab.key === "pipeline"
+                ? "nav-pipelines"
+                : tab.key === "approvals"
+                  ? "nav-reviews"
+                  : undefined
+            }
             className={`flex items-center gap-1.5 px-3 h-full text-xs font-medium border-b-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
               viewMode === tab.key
                 ? "text-foreground border-accent"
