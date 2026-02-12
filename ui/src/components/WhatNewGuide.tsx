@@ -80,7 +80,7 @@ export function WhatNewGuide() {
         },
         {
           target: '[data-tour="create-pipeline-submit"]',
-          content: "Crea DAG + tasks seed (extract/transform/load/dqa) y abre en Pro.",
+          content: "Crea DAG + tasks seed (ddl/extract/transform/load/dqa) y abre en Pro.",
         },
         {
           target: '[data-tour="status-legend"]',

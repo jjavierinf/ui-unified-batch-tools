@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { useEditorStore } from "@/lib/store";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
-import { isDdlTask } from "@/lib/task-type-utils";
+import { isTransparentSystemDdlTask } from "@/lib/task-type-utils";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { DagConfig } from "@/lib/types";
@@ -54,13 +54,13 @@ export function PipelineOverview() {
   }, [filtered, groupBy]);
 
   const taskCountFor = (dagName: string) =>
-    tasks.filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath)).length;
+    tasks.filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath)).length;
 
   const cycleStatus = (dagName: string) => {
     const current = getPipelineStatus(files, tasks, dagName);
     const next = getNextStatus(current);
     const targetPaths = tasks
-      .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
+      .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
       .map((t) => t.sqlFilePath);
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);

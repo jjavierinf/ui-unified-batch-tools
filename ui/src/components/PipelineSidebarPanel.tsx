@@ -6,7 +6,7 @@ import { useEditorStore } from "@/lib/store";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron } from "@/lib/cron-utils";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
-import { isDdlTask } from "@/lib/task-type-utils";
+import { isTransparentSystemDdlTask } from "@/lib/task-type-utils";
 import { StatusBadge } from "./StatusBadge";
 import { DagConfigEditor } from "./pipeline/DagConfigEditor";
 import { TaskConfigPanel } from "./pipeline/TaskConfigPanel";
@@ -55,7 +55,7 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const cycleStatus = () => {
     const next = getNextStatus(pipelineStatus);
     const targetPaths = tasks
-      .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
+      .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
       .map((t) => t.sqlFilePath);
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);

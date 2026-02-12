@@ -49,6 +49,7 @@ export function TaskConfigFields({
   const isExtract = task.stage === "extract";
   const isTransform = task.stage === "transform";
   const isLoad = task.stage === "load";
+  const isDdl = task.stage === "ddl";
   const isDqa = task.stage === "dqa";
   const showTargetConnection = isExtract || isLoad || isDqa;
   const showLoadTarget = config.loadTarget !== undefined;
@@ -384,12 +385,95 @@ export function TaskConfigFields({
               />
             </div>
           </div>
+
+          {config.dqa?.queryType === "source_vs_target_query_comparison" && (
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel>Source Query File</FieldLabel>
+                <input
+                  type="text"
+                  value={config.dqa?.sourceQueryFile ?? ""}
+                  onChange={(e) =>
+                    update({
+                      dqa: {
+                        ...config.dqa,
+                        sourceQueryFile: e.target.value,
+                      },
+                    })
+                  }
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                  placeholder="e.g. source_count_by_day.sql"
+                  spellCheck={false}
+                />
+              </div>
+              <div>
+                <FieldLabel>Target Query File</FieldLabel>
+                <input
+                  type="text"
+                  value={config.dqa?.targetQueryFile ?? ""}
+                  onChange={(e) =>
+                    update({
+                      dqa: {
+                        ...config.dqa,
+                        targetQueryFile: e.target.value,
+                      },
+                    })
+                  }
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                  placeholder="e.g. target_count_by_day.sql"
+                  spellCheck={false}
+                />
+              </div>
+              <div>
+                <FieldLabel>Metric</FieldLabel>
+                <select
+                  value={config.dqa?.comparisonMetric ?? "count_per_day"}
+                  onChange={(e) =>
+                    update({
+                      dqa: {
+                        ...config.dqa,
+                        comparisonMetric: e.target.value as "count_per_day" | "count_total",
+                      },
+                    })
+                  }
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors cursor-pointer"
+                >
+                  <option value="count_per_day">count_per_day</option>
+                  <option value="count_total">count_total</option>
+                </select>
+              </div>
+              <div>
+                <FieldLabel>Group by</FieldLabel>
+                <input
+                  type="text"
+                  value={(config.dqa?.groupBy ?? ["day"]).join(", ")}
+                  onChange={(e) =>
+                    update({
+                      dqa: {
+                        ...config.dqa,
+                        groupBy: e.target.value
+                          .split(",")
+                          .map((v) => v.trim())
+                          .filter(Boolean),
+                      },
+                    })
+                  }
+                  className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
+                  placeholder="day"
+                  spellCheck={false}
+                />
+              </div>
+              <p className="col-span-2 text-[10px] text-text-tertiary">
+                Scaffold note: comparison execution is mocked; these fields exist to make the intent explicit.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
       <div className="pt-1">
         <span className="text-[10px] text-text-tertiary">
-          Stage: {isExtract ? "extract" : isTransform ? "transform" : isLoad ? "load" : "dqa"} · Task type: {task.taskType}
+          Stage: {isExtract ? "extract" : isTransform ? "transform" : isLoad ? "load" : isDdl ? "ddl" : "dqa"} · Task type: {task.taskType}
         </span>
       </div>
     </div>
@@ -412,4 +496,3 @@ function FieldLabel({
     </label>
   );
 }
-

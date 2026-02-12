@@ -50,7 +50,7 @@ export function PipelineView() {
     setViewMode("pipeline");
     setPipelineSubMode("pro");
     setOpenCreate(false);
-    addToast(`Pipeline ${result.displayFolder} created with 4 stage tasks`);
+    addToast(`Pipeline ${result.displayFolder} created with 5 stage tasks`);
   };
 
   return (
@@ -158,7 +158,7 @@ export function PipelineView() {
               </div>
             </div>
             <p className="text-[10px] text-text-tertiary">
-              Creates 4 tasks and SQL files in `extract/transform/load/dqa`.
+              Creates 5 tasks and SQL files in `ddl/extract/transform/load/dqa`.
             </p>
             <div className="flex justify-end gap-2">
               <button
