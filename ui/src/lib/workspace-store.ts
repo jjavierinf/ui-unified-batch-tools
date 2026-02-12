@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ViewMode = "code" | "pipeline" | "approvals";
+export type ViewMode = "code" | "pipeline" | "approvals" | "safety";
 export type PipelineSubMode = "simple" | "pro";
 
 interface WorkspaceStore {

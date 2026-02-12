@@ -7,9 +7,7 @@ import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useEditorStore } from "@/lib/store";
 
-const WHATS_NEW_VERSION = "2026-02-12-phase7-guide-v1";
-const BASE_STEP_COUNT = 9;
-
+const WHATS_NEW_VERSION = "2026-02-12-phase12-guide-v1";
 type PlanStatus = "done" | "current" | "future" | "out";
 
 interface PlanItem {
@@ -25,7 +23,12 @@ const planItems: PlanItem[] = [
   { label: "4. YAML task config + cohesión DAG/task", status: "done" },
   { label: "5. Save/Push workflow", status: "done" },
   { label: "6. Alta pipeline + DnD hardening", status: "done" },
-  { label: "7. Push unificado + confirmación Prod", status: "current" },
+  { label: "7. Push unificado + confirmación Prod", status: "done" },
+  { label: "8. Task config UX (gear) + diff discoverable", status: "done" },
+  { label: "9. DDL visible + DQA realista (2 tipos)", status: "done" },
+  { label: "10. Pro folder focus -> pipeline summary", status: "done" },
+  { label: "11. SQL Explorer manage connections", status: "done" },
+  { label: "12. Safety enforces (Team Leader)", status: "current" },
 ];
 
 const outOfScopeItems = [
@@ -94,6 +97,10 @@ export function WhatNewGuide() {
 
       if (isLeader) {
         baseSteps.push({
+          target: '[data-tour="nav-safety"]',
+          content: "Nuevo: Safety (leader-only). Define guardrails de equipo para Explorer y Pipes.",
+        });
+        baseSteps.push({
           target: '[data-tour="nav-reviews"]',
           content: "Como líder, en Reviews ves lo pendiente de aprobación.",
         });
@@ -138,8 +145,19 @@ export function WhatNewGuide() {
   }, [setPipelineSubMode, setViewMode, startTourSignal]);
 
   const handleJoyride = (data: CallBackProps) => {
-    if (isLeader && data.index >= BASE_STEP_COUNT) {
-      setViewMode("approvals");
+    if (isLeader) {
+      const target = typeof data.step?.target === "string" ? data.step.target : "";
+      if (target.includes('nav-safety')) {
+        setViewMode("safety");
+      } else if (
+        target.includes('nav-reviews') ||
+        target.includes('approve-all') ||
+        target.includes('request-changes') ||
+        target.includes('reviews-content') ||
+        target.includes('approvals-actions')
+      ) {
+        setViewMode("approvals");
+      }
     }
     const finished = data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED;
     if (finished) {
@@ -176,7 +194,7 @@ export function WhatNewGuide() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">What&apos;s new</h2>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Fase 7: push unificado + confirmación de Prod
+                  Fase 12: safety enforces (leader) + enforcement mock visible
                 </p>
               </div>
               <button

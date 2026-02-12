@@ -7,6 +7,8 @@ import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron } from "@/lib/cron-utils";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
 import { isTransparentSystemDdlTask } from "@/lib/task-type-utils";
+import { useSafetyStore } from "@/lib/safety-store";
+import { useToastStore } from "@/lib/toast-store";
 import { StatusBadge } from "./StatusBadge";
 import { DagConfigEditor } from "./pipeline/DagConfigEditor";
 import { TaskConfigPanel } from "./pipeline/TaskConfigPanel";
@@ -34,6 +36,8 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const selectFile = useEditorStore((s) => s.selectFile);
   const [showDagConfig, setShowDagConfig] = useState(false);
+  const safety = useSafetyStore((s) => s.config);
+  const addToast = useToastStore((s) => s.addToast);
 
   const config = dagConfigs.find((d) => d.dagName === dagName);
 
@@ -59,6 +63,26 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
       .map((t) => t.sqlFilePath);
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);
+  };
+
+  const simulateRun = () => {
+    const idlePct = 20 + (dagName.length % 61); // deterministic mock
+    const estRuntimeMs = Math.min(300_000, pipelineTasks.length * 9_000);
+    if (idlePct < safety.minIdlePctPipes) {
+      addToast(
+        `Simulate run blocked: idle ${idlePct}% < min ${safety.minIdlePctPipes}% (SQL Pipes)`,
+        "error"
+      );
+      return;
+    }
+    if (estRuntimeMs > safety.maxRuntimeMsPipes) {
+      addToast(
+        `Simulate run blocked: est ${estRuntimeMs}ms > max ${safety.maxRuntimeMsPipes}ms (SQL Pipes)`,
+        "error"
+      );
+      return;
+    }
+    addToast(`Simulate run OK (mock) · idle ${idlePct}% · est ${estRuntimeMs}ms`);
   };
 
   const activeTask = pipelineTasks.find((t) => t.sqlFilePath === selectedFile);
@@ -105,6 +129,13 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
             title="Cycle status for this pipeline (scaffold)"
           >
             cycle
+          </button>
+          <button
+            onClick={simulateRun}
+            className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+            title="Simulate run with Safety enforces (scaffold)"
+          >
+            simulate run
           </button>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   executeMockQuery,
 } from "@/lib/sql-explorer-mock";
 import { useSqlExplorerStore } from "@/lib/sql-explorer-store";
+import { useSafetyStore } from "@/lib/safety-store";
 
 function SchemaBrowser({
   connection,
@@ -131,6 +132,7 @@ export function CodeView() {
   const addConnection = useSqlExplorerStore((s) => s.addConnection);
   const updateConnection = useSqlExplorerStore((s) => s.updateConnection);
   const removeConnection = useSqlExplorerStore((s) => s.removeConnection);
+  const safety = useSafetyStore((s) => s.config);
 
   const [activeTable, setActiveTable] = useState<MockTable | null>(null);
   const [showManage, setShowManage] = useState(false);
@@ -140,6 +142,7 @@ export function CodeView() {
     rows: [] as Array<Record<string, string | number>>,
     notice: "Ready",
   }));
+  const [lastMetrics, setLastMetrics] = useState<{ idlePct: number; estRuntimeMs: number } | null>(null);
 
   const connection = useMemo<MockConnection | null>(
     () => connections.find((c) => c.id === connectionId) ?? connections[0] ?? null,
@@ -148,6 +151,38 @@ export function CodeView() {
 
   const runQuery = () => {
     if (!connection) return;
+
+    const estRuntimeMs = Math.min(120_000, 300 + query.length * 14);
+    const hash = Array.from(connectionId).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    const idlePct = 20 + (hash % 61); // 20..80 (deterministic)
+    setLastMetrics({ idlePct, estRuntimeMs });
+
+    if (idlePct < safety.minIdlePctExplorer) {
+      setResult({
+        columns: ["message"],
+        rows: [
+          {
+            message: `Blocked by Safety enforces: idle ${idlePct}% < min ${safety.minIdlePctExplorer}% (SQL Explorer).`,
+          },
+        ],
+        notice: "Blocked (mock enforcement)",
+      });
+      return;
+    }
+
+    if (estRuntimeMs > safety.maxRuntimeMsExplorer) {
+      setResult({
+        columns: ["message"],
+        rows: [
+          {
+            message: `Blocked by Safety enforces: estimated runtime ${estRuntimeMs}ms > max ${safety.maxRuntimeMsExplorer}ms (SQL Explorer).`,
+          },
+        ],
+        notice: "Blocked (mock enforcement)",
+      });
+      return;
+    }
+
     setResult(executeMockQuery(connection, query));
   };
 
@@ -229,11 +264,46 @@ export function CodeView() {
             spellCheck={false}
             className="w-full h-[140px] resize-none rounded-md border border-sidebar-border bg-surface px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
+          {(() => {
+            const isSelect = /^\s*select\b/i.test(query);
+            const hasLimitLike = /\blimit\b|\btop\b/i.test(query);
+            if (!isSelect || hasLimitLike) return null;
+            return (
+              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-sidebar-border bg-surface px-3 py-2">
+                <div className="text-[11px] text-text-secondary">
+                  Suggested: add <code>LIMIT {safety.defaultLimitRowsExplorer}</code> (team default).
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const limitClause = `\\nLIMIT ${safety.defaultLimitRowsExplorer};`;
+                    setQuery((q) => {
+                      if (/\blimit\b|\btop\b/i.test(q)) return q;
+                      const trimmed = q.trimEnd();
+                      const endsWithSemicolon = trimmed.endsWith(";");
+                      if (endsWithSemicolon) {
+                        return trimmed.slice(0, -1) + limitClause;
+                      }
+                      return trimmed + limitClause;
+                    });
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                >
+                  Apply LIMIT
+                </button>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto">
-          <div className="px-4 py-2 border-b border-sidebar-border text-[10px] text-text-tertiary">
-            {result.notice}
+          <div className="px-4 py-2 border-b border-sidebar-border text-[10px] text-text-tertiary flex items-center justify-between gap-3">
+            <span>{result.notice}</span>
+            {lastMetrics && (
+              <span className="text-text-tertiary">
+                idle {lastMetrics.idlePct}% (mock) · est {lastMetrics.estRuntimeMs}ms (mock)
+              </span>
+            )}
           </div>
           {result.columns.length === 0 ? (
             <div className="p-4 text-xs text-text-tertiary">Run a query to see results.</div>

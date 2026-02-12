@@ -6,6 +6,7 @@ import { CodeView } from "./CodeView";
 import { PipelineView } from "./PipelineView";
 import { ApprovalsView } from "./ApprovalsView";
 import { WhatNewGuide } from "./WhatNewGuide";
+import { SafetyEnforcesView } from "./SafetyEnforcesView";
 
 export function WorkspaceShell() {
   const viewMode = useWorkspaceStore((s) => s.viewMode);
@@ -18,6 +19,8 @@ export function WorkspaceShell() {
         <CodeView />
       ) : viewMode === "pipeline" ? (
         <PipelineView />
+      ) : viewMode === "safety" ? (
+        <SafetyEnforcesView />
       ) : (
         <ApprovalsView />
       )}
