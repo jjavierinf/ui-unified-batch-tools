@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import { PipelineTask, DagConfig, TaskConfig } from "./types";
 import { initialPipelineTasks } from "./pipeline-mock-data";
 import { dagConfigs as initialDagConfigs } from "./mock-data";
-import { isDdlTask } from "./task-type-utils";
+import { isTransparentSystemDdlTask } from "./task-type-utils";
 
 interface CreatePipelineInput {
   integrationName: string;
@@ -55,7 +55,7 @@ export const usePipelineStore = create<PipelineStore>()(
           const otherTasks = state.tasks.filter((t) => t.dagName !== dagName);
 
           const visibleTasks = dagTasks.filter(
-            (t) => !isDdlTask(t.name, t.sqlFilePath)
+            (t) => !isTransparentSystemDdlTask(t.name, t.sqlFilePath)
           );
           if (
             fromIndex < 0 ||
@@ -71,7 +71,7 @@ export const usePipelineStore = create<PipelineStore>()(
 
           let cursor = 0;
           const merged = dagTasks.map((task) => {
-            if (isDdlTask(task.name, task.sqlFilePath)) return task;
+            if (isTransparentSystemDdlTask(task.name, task.sqlFilePath)) return task;
             const next = visibleTasks[cursor];
             cursor += 1;
             return next;
@@ -143,6 +143,16 @@ export const usePipelineStore = create<PipelineStore>()(
         const basePath = `dags/${integration}/${displayFolder}`;
         const fileSeed = [
           {
+            path: `${basePath}/ddl/bi_custom_ddl.sql`,
+            content:
+              "-- BI custom DDL (visible)\n" +
+              "-- Note: system DDL is transparent and hidden in the UI.\n" +
+              "CREATE TABLE IF NOT EXISTS bi_custom_table (\n" +
+              "  id INT,\n" +
+              "  note VARCHAR(255)\n" +
+              ");\n",
+          },
+          {
             path: `${basePath}/extract/extract_task.sql`,
             content:
               "-- Extract stage\nSELECT *\nFROM source_table\nWHERE updated_at >= '{{ ts }}';\n",
@@ -183,13 +193,27 @@ export const usePipelineStore = create<PipelineStore>()(
 
           const newTasks: PipelineTask[] = [
             {
+              id: `${dagName}-ddl`,
+              name: `ddl_${pipeline}_bi_custom`,
+              dagName,
+              stage: "ddl",
+              taskType: input.dagType,
+              sqlFilePath: fileSeed[0].path,
+              order: 1,
+              taskConfig: {
+                expectedWorkload: "low",
+                connection: { source: "target_db_conn" },
+                query: { file: "bi_custom_ddl.sql", timezone: "UTC" },
+              },
+            },
+            {
               id: `${dagName}-extract`,
               name: `extract_${pipeline}`,
               dagName,
               stage: "extract",
               taskType: input.dagType,
-              sqlFilePath: fileSeed[0].path,
-              order: 1,
+              sqlFilePath: fileSeed[1].path,
+              order: 2,
               taskConfig: {
                 expectedWorkload: "medium",
                 targetTableName: `${integration}_${pipeline}`,
@@ -203,8 +227,8 @@ export const usePipelineStore = create<PipelineStore>()(
               dagName,
               stage: "transform",
               taskType: input.dagType,
-              sqlFilePath: fileSeed[1].path,
-              order: 2,
+              sqlFilePath: fileSeed[2].path,
+              order: 3,
               taskConfig: {
                 connection: { source: "target_db_conn" },
                 query: { file: "transform_task.sql", timezone: "US/Eastern" },
@@ -216,8 +240,8 @@ export const usePipelineStore = create<PipelineStore>()(
               dagName,
               stage: "load",
               taskType: input.dagType,
-              sqlFilePath: fileSeed[2].path,
-              order: 3,
+              sqlFilePath: fileSeed[3].path,
+              order: 4,
               taskConfig: {
                 connection: { source: "target_db_conn", target: "target_db_conn" },
                 query: { file: "load_task.sql", timezone: "US/Eastern" },
@@ -230,8 +254,8 @@ export const usePipelineStore = create<PipelineStore>()(
               dagName,
               stage: "dqa",
               taskType: input.dagType,
-              sqlFilePath: fileSeed[3].path,
-              order: 4,
+              sqlFilePath: fileSeed[4].path,
+              order: 5,
               taskConfig: {
                 connection: { source: "target_db_conn" },
                 query: { file: "dqa_task.sql", timezone: "US/Eastern" },

@@ -83,10 +83,65 @@ ORDER BY
 ;`
   ),
 
-  "dags/CRM_integration/AccountReference/dqa/delete_logs.sql": f(
-`DELETE FROM db_stage.Accounts_dbo_AccountReference
+  "dags/CRM_integration/AccountReference/transform/cleanup_logs.sql": f(
+`-- Cleanup logs (NOT DQA)
+DELETE FROM db_stage.Accounts_dbo_AccountReference
 WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 3 MONTH)
 ;`
+  ),
+
+  "dags/CRM_integration/AccountReference/load/load_to_datamodel.sql": f(
+`-- Load stage (example)
+-- In a real DAG, this would upsert into the final datamodel table.
+INSERT INTO db_data_model.Accounts_dbo_AccountReference
+SELECT *
+FROM db_stage.Accounts_dbo_AccountReference
+WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et }}'
+;`
+  ),
+
+  "dags/CRM_integration/AccountReference/dqa/rule_check_accounts.sql": f(
+`-- DQA type 2: rule check inside the same DB (single query)
+-- Example: flag records where balanceDate is in the future.
+SELECT
+  COUNT(*) AS invalid_rows
+FROM db_data_model.Accounts_dbo_AccountReference
+WHERE balanceDate > '{{ ts | convert_utc_to_et }}'
+;`
+  ),
+
+  "dags/CRM_integration/AccountReference/dqa/source_count_by_day.sql": f(
+`-- DQA type 3 (source query): count per day in source
+SELECT
+  CAST(rowModified AS DATE) AS day,
+  COUNT(*) AS cnt
+FROM tr.AccountReference
+WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)
+GROUP BY 1
+ORDER BY 1;
+`
+  ),
+
+  "dags/CRM_integration/AccountReference/dqa/target_count_by_day.sql": f(
+`-- DQA type 3 (target query): count per day in target
+SELECT
+  CAST(saga_logical_run_ts AS DATE) AS day,
+  COUNT(*) AS cnt
+FROM db_data_model.Accounts_dbo_AccountReference
+WHERE saga_logical_run_ts >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)
+GROUP BY 1
+ORDER BY 1;
+`
+  ),
+
+  "dags/CRM_integration/AccountReference/dqa/compare_counts.sql": f(
+`-- DQA type 3: source vs target query comparison (scaffold)
+-- Config points to two query files:
+--   - source_count_by_day.sql
+--   - target_count_by_day.sql
+-- This file exists to make the task obvious in the UI.
+SELECT 1 AS scaffold_only;
+`
   ),
 
   // ── CRM_integration / Game ──────────────────────────────────────
@@ -208,12 +263,20 @@ ORDER BY
 ;`
   ),
 
-  "dags/CRM_integration/Game/dqa/delete_logs.sql": f(
-`DELETE FROM db_stage.GamingIntegration_gc_Game
-WHERE
+  "dags/CRM_integration/Game/transform/cleanup_logs.sql": f(
+`-- Cleanup logs (NOT DQA)
+DELETE FROM db_stage.GamingIntegration_gc_Game
+WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
+;`
+  ),
 
-    saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
-
+  "dags/CRM_integration/Game/dqa/rule_check_game.sql": f(
+`-- DQA type 2: rule check (single query)
+-- Example: make sure name is not empty.
+SELECT
+  COUNT(*) AS invalid_rows
+FROM db_data_model.GamingIntegration_gc_Game
+WHERE name IS NULL OR TRIM(name) = ''
 ;`
   ),
 
@@ -355,12 +418,44 @@ ORDER BY
 ;`
   ),
 
-  "dags/CRM_integration/GameTransaction/dqa/delete_logs.sql": f(
-`SELECT
-  COUNT(*) AS source_count
-FROM db_stage.GamingIntegration_tr_GameTransaction
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+  "dags/CRM_integration/GameTransaction/transform/cleanup_logs.sql": f(
+`-- Cleanup logs (NOT DQA)
+DELETE FROM db_stage.GamingIntegration_tr_GameTransaction
+WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 14 DAY)
 ;`
+  ),
+
+  "dags/CRM_integration/GameTransaction/dqa/source_count_by_day.sql": f(
+`-- DQA type 3 (source query): count per day in source
+SELECT
+  CAST(rowModified AS DATE) AS day,
+  COUNT(*) AS cnt
+FROM tr.GameTransaction
+WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 7 DAY)
+GROUP BY 1
+ORDER BY 1;
+`
+  ),
+
+  "dags/CRM_integration/GameTransaction/dqa/target_count_by_day.sql": f(
+`-- DQA type 3 (target query): count per day in target
+SELECT
+  CAST(saga_logical_run_ts AS DATE) AS day,
+  COUNT(*) AS cnt
+FROM db_stage.GamingIntegration_tr_GameTransaction
+WHERE saga_logical_run_ts >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 7 DAY)
+GROUP BY 1
+ORDER BY 1;
+`
+  ),
+
+  "dags/CRM_integration/GameTransaction/dqa/compare_counts.sql": f(
+`-- DQA type 3: source vs target query comparison (scaffold)
+-- Config points to:
+--   - source_count_by_day.sql
+--   - target_count_by_day.sql
+SELECT 1 AS scaffold_only;
+`
   ),
 
   // ── BEATS_integration / AccountLogType ──────────────────────────
@@ -433,9 +528,20 @@ ORDER BY saga_real_run_ts ASC
 ;`
   ),
 
-  "dags/BEATS_integration/AccountLogType/dqa/delete_logs.sql": f(
-`DELETE FROM db_stage.Accounts_dbo_AccountLogType
-WHERE  saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
+  "dags/BEATS_integration/AccountLogType/transform/cleanup_logs.sql": f(
+`-- Cleanup logs (NOT DQA)
+DELETE FROM db_stage.Accounts_dbo_AccountLogType
+WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
+;`
+  ),
+
+  "dags/BEATS_integration/AccountLogType/dqa/rule_check_acctlog.sql": f(
+`-- DQA type 2: rule check (single query)
+-- Example: typeName should be present.
+SELECT
+  COUNT(*) AS invalid_rows
+FROM db_data_model.Accounts_dbo_AccountLogType
+WHERE typeName IS NULL OR TRIM(typeName) = ''
 ;`
   ),
 
@@ -522,9 +628,20 @@ WHERE (rowCreated <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
   AND rowModified > DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME)));`
   ),
 
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/dqa/delete_stage_old_records.sql": f(
-`DELETE FROM db_stage.gamingintegration_tr_dailytransactionamount
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/transform/cleanup_stage_old_records.sql": f(
+`-- Cleanup stage old records (NOT DQA)
+DELETE FROM db_stage.gamingintegration_tr_dailytransactionamount
 WHERE balanceDate < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 2 DAY)
+;`
+  ),
+
+  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/dqa/rule_check_dailytx.sql": f(
+`-- DQA type 2: rule check (single query)
+-- Example: balance should not be negative.
+SELECT
+  COUNT(*) AS invalid_rows
+FROM db_data_model.gamingintegration_tr_dailytransactionamount
+WHERE balance < 0
 ;`
   ),
 

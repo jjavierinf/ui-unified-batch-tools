@@ -10,6 +10,7 @@ const stageBorderColors: Record<PipelineStage, string> = {
   extract: "border-l-blue-500",
   transform: "border-l-purple-500",
   load: "border-l-green-500",
+  ddl: "border-l-cyan-500",
   dqa: "border-l-orange-500",
 };
 
@@ -18,6 +19,7 @@ const stageBadgeColors: Record<PipelineStage, string> = {
   transform:
     "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
   load: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  ddl: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
   dqa: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
 };
 
@@ -25,6 +27,7 @@ const stageLabels: Record<PipelineStage, string> = {
   extract: "EXTRACT",
   transform: "TRANSFORM",
   load: "LOAD",
+  ddl: "DDL",
   dqa: "DQA",
 };
 

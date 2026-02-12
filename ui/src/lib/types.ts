@@ -14,7 +14,7 @@ export interface SqlFile {
   approvedAt?: string;
 }
 
-export type PipelineStage = "extract" | "transform" | "load" | "dqa";
+export type PipelineStage = "extract" | "transform" | "load" | "ddl" | "dqa";
 
 // ── Task configuration types (from configfile_proposal.yml) ──
 
@@ -46,6 +46,11 @@ export interface DqaConfig {
   queryType?: DqaQueryType;
   alertKind?: DqaAlertKind;
   tolerance?: number;
+  // For source-vs-target comparisons (scaffold UX only; no real execution yet).
+  sourceQueryFile?: string;
+  targetQueryFile?: string;
+  comparisonMetric?: "count_per_day" | "count_total";
+  groupBy?: string[];
 }
 
 export interface TaskConfig {
