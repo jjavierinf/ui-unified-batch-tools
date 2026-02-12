@@ -202,9 +202,17 @@ export function PipelineOverview() {
                     const nextMins = nextRunMinutes(dag.schedule);
 
                     return (
-                      <button
+                      <div
                         key={dag.dagName}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => selectPipeline(dag.dagName)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            selectPipeline(dag.dagName);
+                          }
+                        }}
                         className={`w-full text-left grid grid-cols-[1fr_90px_140px_60px_80px_auto_28px] gap-2 items-center px-4 py-2.5 border-t border-sidebar-border first:border-t-0 hover:bg-accent/5 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                           i % 2 === 1 ? "bg-surface-hover/30" : ""
                         }`}
@@ -269,7 +277,7 @@ export function PipelineOverview() {
                         >
                           <polyline points="9 18 15 12 9 6" />
                         </svg>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

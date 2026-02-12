@@ -42,6 +42,49 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
   const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
   const fileName = task.sqlFilePath.split("/").pop() ?? task.sqlFilePath;
   const [showConfig, setShowConfig] = useState(false);
+  const summaryLines = (() => {
+    const cfg = task.taskConfig;
+    if (!cfg) return [];
+
+    const lines: string[] = [];
+
+    // Connection / timezone are the most “at a glance” useful for SQL users.
+    if (cfg.connection?.source) {
+      if (cfg.connection.target) lines.push(`${cfg.connection.source} -> ${cfg.connection.target}`);
+      else lines.push(cfg.connection.source);
+    }
+    if (cfg.query?.timezone) lines.push(`TZ: ${cfg.query.timezone}`);
+
+    if (task.stage === "load" && cfg.loadTarget?.type) {
+      if (cfg.loadTarget.type === "DB" && cfg.loadTarget.connection?.target) {
+        lines.push(`Target: ${cfg.loadTarget.connection.target}`);
+      } else if (cfg.loadTarget.type === "S3") {
+        lines.push("Target: S3");
+      } else if (cfg.loadTarget.type === "Email") {
+        const to = cfg.loadTarget.to?.length ? ` (${cfg.loadTarget.to.join(", ")})` : "";
+        lines.push(`Target: Email${to}`);
+      }
+    }
+
+    if (task.stage === "ddl") {
+      if (cfg.targetTableName) lines.push(`DDL for: ${cfg.targetTableName}`);
+      else lines.push("DDL: schema change");
+    }
+
+    if (task.stage === "dqa") {
+      const dqa = cfg.dqa;
+      if (dqa?.queryType === "source_vs_target_query_comparison") {
+        const metric = dqa.comparisonMetric ?? "count_per_day";
+        lines.push(`DQA: source vs target · ${metric}`);
+      } else {
+        const tol = typeof dqa?.tolerance === "number" ? ` · tol ${dqa.tolerance}%` : "";
+        lines.push(`DQA: rule check${tol}`);
+      }
+    }
+
+    // Keep it short: 2 lines max.
+    return lines.filter(Boolean).slice(0, 2);
+  })();
 
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -162,6 +205,15 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
                 <p className="text-xs text-text-tertiary mt-1 truncate pl-0.5">
                   {fileName}
                 </p>
+                {summaryLines.length > 0 && (
+                  <div className="mt-1 pl-0.5 space-y-0.5">
+                    {summaryLines.map((line) => (
+                      <p key={line} className="text-[11px] text-text-secondary truncate">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 </div>
 
                 {task.taskConfig && showConfig && (
