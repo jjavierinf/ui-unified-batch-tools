@@ -61,6 +61,7 @@ export function UserMenu() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
+        data-tour="user-menu-trigger"
         className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-surface-hover transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         {/* Avatar circle */}

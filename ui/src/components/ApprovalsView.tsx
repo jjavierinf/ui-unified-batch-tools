@@ -47,7 +47,7 @@ export function ApprovalsView() {
   }, null as string | null);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background p-6">
+    <div data-tour="reviews-content" className="flex-1 overflow-y-auto bg-background p-6">
       <h1 className="text-lg font-semibold text-foreground mb-6">
         Submissions for Review
       </h1>
@@ -122,9 +122,10 @@ function SubmissionCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3 px-5 py-4 border-t border-sidebar-border bg-surface-hover/30">
+      <div data-tour="approvals-actions" className="flex items-center gap-3 px-5 py-4 border-t border-sidebar-border bg-surface-hover/30">
         <button
           onClick={onApprove}
+          data-tour="approve-all"
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors cursor-pointer"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -134,6 +135,7 @@ function SubmissionCard({
         </button>
         <button
           onClick={onReject}
+          data-tour="request-changes"
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-md border border-sidebar-border text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
