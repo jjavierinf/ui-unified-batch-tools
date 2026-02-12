@@ -1,19 +1,25 @@
 "use client";
 
 import { useEditorStore } from "@/lib/store";
+import { usePipelineStore } from "@/lib/pipeline-store";
 import { SqlEditor } from "./SqlEditor";
 import { SqlDiffViewer } from "./SqlDiffViewer";
 import { EditorActionButtons } from "./EditorActionButtons";
 import { ApprovalPanel } from "./ApprovalPanel";
 import { StatusBadge } from "./StatusBadge";
 import { PipelineContextIndicator } from "./PipelineContextIndicator";
+import { PipelineSidebarPanel } from "./PipelineSidebarPanel";
 
 export function EditorPanel() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
+  const selectedFolder = useEditorStore((s) => s.selectedFolder);
   const files = useEditorStore((s) => s.files);
   const environment = useEditorStore((s) => s.environment);
   const diffCollapsed = useEditorStore((s) => s.diffCollapsed);
   const toggleDiffPanel = useEditorStore((s) => s.toggleDiffPanel);
+
+  const tasks = usePipelineStore((s) => s.tasks);
+  const dagConfigs = usePipelineStore((s) => s.dagConfigs);
 
   const file = selectedFile ? files[selectedFile] : null;
   const isModified = file ? file.content !== file.savedContent : false;
@@ -21,6 +27,43 @@ export function EditorPanel() {
     environment === "prod" && file?.status === "pending_approval";
 
   if (!selectedFile || !file) {
+    const pipelineDagName = (() => {
+      if (!selectedFolder) return null;
+      const parts = selectedFolder.split("/").filter(Boolean);
+      if (parts.length < 3 || parts[0] !== "dags") return null;
+      const integration = parts[1];
+      const folderName = parts[2];
+      const fromFolder = dagConfigs.find(
+        (d) =>
+          d.integrationName === integration &&
+          d.dagName.toLowerCase().includes(`_${folderName.toLowerCase()}`)
+      );
+      if (fromFolder) return fromFolder.dagName;
+      const fromTask = tasks.find((t) => t.sqlFilePath.startsWith(`${parts.slice(0, 3).join("/")}/`));
+      return fromTask?.dagName ?? null;
+    })();
+
+    if (pipelineDagName) {
+      return (
+        <div className="flex-1 min-w-0 bg-background flex flex-col">
+          <div className="px-4 py-3 border-b border-sidebar-border bg-surface">
+            <p className="text-[10px] uppercase tracking-wide text-text-tertiary">
+              Pro folder focus
+            </p>
+            <p className="text-sm font-semibold text-foreground mt-0.5">
+              Pipeline summary
+            </p>
+            <p className="text-[11px] text-text-secondary mt-1">
+              You selected a pipeline folder. Pick a task below to open the SQL editor, or edit DAG/task params here.
+            </p>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <PipelineSidebarPanel dagName={pipelineDagName} />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <div className="text-center">
