@@ -9,6 +9,16 @@ const PRIORITY: Record<FileStatus, number> = {
   approved: 4,
 };
 
+const ORDER: FileStatus[] = ["draft", "saved_local", "submitted", "pending_approval", "approved"];
+
+export const STATUS_MEANING: Record<FileStatus, string> = {
+  draft: "Local work in progress.",
+  saved_local: "Saved locally and ready to push.",
+  submitted: "Sent to environment branch.",
+  pending_approval: "Submitted to prod, waiting leader approval.",
+  approved: "Approved and merged to main.",
+};
+
 export function getPipelineStatus(
   files: Record<string, SqlFile>,
   tasks: PipelineTask[],
@@ -25,4 +35,8 @@ export function getPipelineStatus(
     }
   }
   return status;
+}
+
+export function getNextStatus(status: FileStatus): FileStatus {
+  return ORDER[(ORDER.indexOf(status) + 1) % ORDER.length];
 }
