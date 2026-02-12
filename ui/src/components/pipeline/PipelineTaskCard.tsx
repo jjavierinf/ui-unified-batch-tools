@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import type { PipelineTask, PipelineStage } from "@/lib/types";
 import { usePipelineStore } from "@/lib/pipeline-store";
-import { TaskConfigPanel } from "./TaskConfigPanel";
+import { TaskConfigFields } from "./TaskConfigFields";
 
 const stageBorderColors: Record<PipelineStage, string> = {
   extract: "border-l-blue-500",
@@ -37,6 +38,7 @@ interface PipelineTaskCardProps {
 export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskCardProps) {
   const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
   const fileName = task.sqlFilePath.split("/").pop() ?? task.sqlFilePath;
+  const [showConfig, setShowConfig] = useState(false);
 
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -93,23 +95,24 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
               </div>
 
               {/* Content */}
-              <div
-                className="flex-1 py-2.5 pr-3 min-w-0 cursor-pointer"
-                onClick={onClick}
-                role={onClick ? "button" : undefined}
-                tabIndex={onClick ? 0 : undefined}
-                onKeyDown={
-                  onClick
-                    ? (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onClick();
+              <div className="flex-1 py-2.5 pr-3 min-w-0">
+                <div
+                  className="cursor-pointer"
+                  onClick={onClick}
+                  role={onClick ? "button" : undefined}
+                  tabIndex={onClick ? 0 : undefined}
+                  onKeyDown={
+                    onClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onClick();
+                          }
                         }
-                      }
-                    : undefined
-                }
-              >
-                <div className="flex items-center gap-2">
+                      : undefined
+                  }
+                >
+                  <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-text-tertiary bg-surface-hover px-1.5 py-0.5 rounded">
                     #{index + 1}
                   </span>
@@ -121,13 +124,47 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
                   >
                     {stageLabels[task.stage]}
                   </span>
+                  <div className="flex-1" />
+                  {task.taskConfig && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowConfig((v) => !v);
+                      }}
+                      className={`w-7 h-7 flex items-center justify-center rounded-md border border-sidebar-border transition-colors cursor-pointer ${
+                        showConfig
+                          ? "bg-accent/10 text-accent"
+                          : "text-text-secondary hover:text-foreground hover:bg-surface-hover"
+                      }`}
+                      title={showConfig ? "Hide task config" : "Show task config"}
+                      aria-label="Toggle task config"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <p className="text-xs text-text-tertiary mt-1 truncate pl-0.5">
                   {fileName}
                 </p>
-                {task.taskConfig && (
-                  <TaskConfigPanel
+                </div>
+
+                {task.taskConfig && showConfig && (
+                  <TaskConfigFields
                     task={task}
+                    config={task.taskConfig}
                     onUpdateConfig={updateTaskConfig}
                   />
                 )}
