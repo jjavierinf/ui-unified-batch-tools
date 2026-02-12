@@ -6,6 +6,9 @@ import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useEditorStore } from "@/lib/store";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron } from "@/lib/cron-utils";
+import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
+import { isDdlTask } from "@/lib/task-type-utils";
+import { StatusBadge } from "./StatusBadge";
 
 interface PipelineSidebarPanelProps {
   dagName: string;
@@ -23,6 +26,8 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const selectPipeline = usePipelineStore((s) => s.selectPipeline);
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
   const selectedFile = useEditorStore((s) => s.selectedFile);
+  const files = useEditorStore((s) => s.files);
+  const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
 
   const config = dagConfigs.find((d) => d.dagName === dagName);
 
@@ -38,6 +43,17 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const handleOpenInPipelineMode = () => {
     selectPipeline(dagName);
     setViewMode("pipeline");
+  };
+
+  const pipelineStatus = getPipelineStatus(files, tasks, dagName);
+
+  const cycleStatus = () => {
+    const next = getNextStatus(pipelineStatus);
+    const targetPaths = tasks
+      .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
+      .map((t) => t.sqlFilePath);
+    if (targetPaths.length === 0) return;
+    setFilesStatus(targetPaths, next);
   };
 
   return (
@@ -73,6 +89,16 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
           <span className="text-[10px] text-text-tertiary">
             {config.integrationName}
           </span>
+          <span title={STATUS_MEANING[pipelineStatus]}>
+            <StatusBadge status={pipelineStatus} />
+          </span>
+          <button
+            onClick={cycleStatus}
+            className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+            title="Cycle status for this pipeline (scaffold)"
+          >
+            cycle
+          </button>
         </div>
       </div>
 
@@ -183,13 +209,18 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
                     {index + 1}
                   </span>
                   <span className="truncate">{task.name}</span>
+                  {files[task.sqlFilePath] && (
+                    <span className="ml-auto">
+                      <StatusBadge status={files[task.sqlFilePath].status} />
+                    </span>
+                  )}
                   {isCurrent && (
                     <svg
                       width="8"
                       height="8"
                       viewBox="0 0 8 8"
                       fill="currentColor"
-                      className="shrink-0 ml-auto"
+                      className="shrink-0"
                     >
                       <circle cx="4" cy="4" r="3" />
                     </svg>
