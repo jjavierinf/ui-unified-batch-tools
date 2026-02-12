@@ -7,7 +7,7 @@ import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { isDdlTask } from "@/lib/task-type-utils";
 import { getPipelineStatus } from "@/lib/pipeline-status";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { DagConfig } from "@/lib/types";
+import type { DagConfig, FileStatus } from "@/lib/types";
 
 const typeBadge: Record<string, string> = {
   snapshot: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -18,6 +18,7 @@ export function PipelineOverview() {
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
   const tasks = usePipelineStore((s) => s.tasks);
   const files = useEditorStore((s) => s.files);
+  const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const selectPipeline = usePipelineStore((s) => s.selectPipeline);
   const [search, setSearch] = useState("");
   const [groupBy, setGroupBy] = useState<"tag" | "integration">("tag");
@@ -36,15 +37,35 @@ export function PipelineOverview() {
   const grouped = useMemo(() => {
     const groups: Record<string, DagConfig[]> = {};
     for (const dag of filtered) {
-      const groupKey =
-        groupBy === "tag" ? dag.tags[0] ?? dag.integrationName : dag.integrationName;
-      (groups[groupKey] ??= []).push(dag);
+      if (groupBy === "integration") {
+        (groups[dag.integrationName] ??= []).push(dag);
+        continue;
+      }
+
+      const nonIntegrationTags = dag.tags.filter(
+        (tag) => tag.toLowerCase() !== dag.integrationName.toLowerCase()
+      );
+      const tagsToUse = nonIntegrationTags.length > 0 ? nonIntegrationTags : ["untagged"];
+      for (const tag of tagsToUse) {
+        (groups[tag] ??= []).push(dag);
+      }
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, groupBy]);
 
   const taskCountFor = (dagName: string) =>
     tasks.filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath)).length;
+
+  const cycleStatus = (dagName: string) => {
+    const order: FileStatus[] = ["draft", "submitted", "pending_approval", "approved"];
+    const current = getPipelineStatus(files, tasks, dagName);
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    const targetPaths = tasks
+      .filter((t) => t.dagName === dagName && !isDdlTask(t.name, t.sqlFilePath))
+      .map((t) => t.sqlFilePath);
+    if (targetPaths.length === 0) return;
+    setFilesStatus(targetPaths, next);
+  };
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-background">
@@ -107,6 +128,14 @@ export function PipelineOverview() {
               by integration
             </button>
           </div>
+        </div>
+        <div className="mt-2 flex items-center gap-2 text-[10px] text-text-tertiary">
+          <span className="uppercase tracking-wider">Status legend</span>
+          <StatusBadge status="draft" />
+          <StatusBadge status="submitted" />
+          <StatusBadge status="pending_approval" />
+          <StatusBadge status="approved" />
+          <span className="ml-1">Use status button per row to cycle in scaffold.</span>
         </div>
       </div>
 
@@ -199,8 +228,18 @@ export function PipelineOverview() {
                         <span className="text-xs text-text-tertiary text-right tabular-nums">
                           {count}
                         </span>
-                        <span>
+                        <span className="flex items-center gap-1">
                           <StatusBadge status={getPipelineStatus(files, tasks, dag.dagName)} />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cycleStatus(dag.dagName);
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                            title="Cycle status for this pipeline (scaffold)"
+                          >
+                            cycle
+                          </button>
                         </span>
                         <div className="flex gap-1 overflow-hidden">
                           {dag.tags
