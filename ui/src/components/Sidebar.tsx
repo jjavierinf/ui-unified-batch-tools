@@ -115,7 +115,7 @@ export function Sidebar() {
       </div>
 
       {pipelineContext && (
-        <div className="border-t border-sidebar-border px-3 py-2 bg-surface/50">
+        <div data-tour="pro-handoff-context" className="border-t border-sidebar-border px-3 py-2 bg-surface/50">
           <p className="text-[10px] uppercase tracking-wider text-text-tertiary">Pipeline context</p>
           <p className="text-xs text-foreground truncate mt-1" title={pipelineContext.displayName}>
             {pipelineContext.displayName}
@@ -128,6 +128,7 @@ export function Sidebar() {
               selectPipeline(pipelineContext.dagName);
               setPipelineSubMode("simple");
             }}
+            data-tour="pro-handoff-button"
             className="mt-2 w-full text-[11px] px-2 py-1.5 rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
           >
             Open pipeline handoff
