@@ -88,11 +88,11 @@ export function UnifiedHeader() {
     (f) => f.status === "pending_approval"
   ).length;
 
-  const modifiedFiles = Object.entries(files).filter(
-    ([, f]) => f.content !== f.savedContent
+  const saveCandidates = Object.entries(files).filter(
+    ([, f]) => f.content !== f.savedContent || f.status === "draft"
   );
-  const modifiedCount = modifiedFiles.length;
-  const hasChanges = modifiedCount > 0;
+  const saveCount = saveCandidates.length;
+  const canSave = saveCount > 0;
   const canPushDev = Object.values(files).some(
     (f) => f.status === "saved_local" && f.content === f.savedContent
   );
@@ -103,11 +103,11 @@ export function UnifiedHeader() {
   );
 
   const handleSaveAll = () => {
-    for (const [path] of modifiedFiles) {
+    for (const [path] of saveCandidates) {
       saveFile(path);
     }
-    if (modifiedFiles.length > 0) {
-      addToast(`${modifiedFiles.length} file(s) saved locally`, "info");
+    if (saveCandidates.length > 0) {
+      addToast(`${saveCandidates.length} file(s) saved locally`, "info");
     }
   };
 
@@ -179,17 +179,17 @@ export function UnifiedHeader() {
         <button
           onClick={handleSaveAll}
           data-tour="workspace-save-all"
-          disabled={!hasChanges}
+          disabled={!canSave}
           className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
-            hasChanges
+            canSave
               ? "bg-accent text-white hover:bg-accent/80 cursor-pointer"
               : "bg-surface-hover text-text-tertiary cursor-not-allowed"
           }`}
         >
           Save all
-          {hasChanges && (
+          {canSave && (
             <span className="ml-1.5 bg-white/20 px-1.5 py-0.5 rounded text-[10px]">
-              {modifiedCount}
+              {saveCount}
             </span>
           )}
         </button>
