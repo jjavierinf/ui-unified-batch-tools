@@ -22,3 +22,4 @@ Este directorio guarda changelogs por iteración/branch sin tocar el historial p
 - `2026-02-12-phase-17-manage-connections-ux-guardrails.md`
 - `2026-02-12-phase-18-safety-guardrails-callouts.md`
 - `2026-02-12-phase-19-whats-new-joyride-storytelling.md`
+- `2026-02-12-phase-20-sql-explorer-dbeaver-look.md`

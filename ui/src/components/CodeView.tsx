@@ -13,6 +13,89 @@ import {
 import { useSqlExplorerStore } from "@/lib/sql-explorer-store";
 import { useSafetyStore } from "@/lib/safety-store";
 
+function Icon({
+  kind,
+  className,
+}: {
+  kind: "connection" | "database" | "schema" | "table";
+  className?: string;
+}) {
+  // Minimal DBeaver-like glyphs (no external icon lib).
+  if (kind === "table") {
+    return (
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+      >
+        <path d="M3 6h18" />
+        <path d="M3 12h18" />
+        <path d="M3 18h18" />
+        <path d="M6 6v12" />
+        <path d="M12 6v12" />
+        <path d="M18 6v12" />
+      </svg>
+    );
+  }
+  if (kind === "schema") {
+    return (
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+      >
+        <path d="M3 7a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      </svg>
+    );
+  }
+  if (kind === "database") {
+    return (
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+      >
+        <ellipse cx="12" cy="5" rx="8" ry="3" />
+        <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+        <path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 function SchemaBrowser({
   connection,
   connectionId,
@@ -23,6 +106,7 @@ function SchemaBrowser({
   setActiveSchemaKey,
   activeTable,
   setActiveTable,
+  filter,
 }: {
   connection: MockConnection | null;
   connectionId: string;
@@ -33,6 +117,7 @@ function SchemaBrowser({
   setActiveSchemaKey: (k: string | null) => void;
   activeTable: MockTable | null;
   setActiveTable: (t: MockTable | null) => void;
+  filter: string;
 }) {
   const initialConnection = connection;
   const [expandedDbs, setExpandedDbs] = useState<Set<string>>(
@@ -80,9 +165,22 @@ function SchemaBrowser({
     setQuery(buildInfoSchemaColumnsQuery(table.database, table.schema, table.name));
   };
 
+  const q = filter.trim().toLowerCase();
+  const matches = (s: string) => (q ? s.toLowerCase().includes(q) : true);
+
   return (
     <div className="flex-1 overflow-y-auto px-2 py-2">
-      {connection?.databases.map((db) => (
+      {connection?.databases
+        .filter((db) => {
+          if (!q) return true;
+          if (matches(db.name)) return true;
+          for (const schema of db.schemas) {
+            if (matches(schema.name)) return true;
+            for (const table of schema.tables) if (matches(table.name)) return true;
+          }
+          return false;
+        })
+        .map((db) => (
         <div key={db.name} className="mb-1">
           <div className="flex items-center gap-1 px-1">
             <button
@@ -108,11 +206,21 @@ function SchemaBrowser({
               }`}
               title="Select database"
             >
-              {db.name}
+              <span className="inline-flex items-center gap-2">
+                <Icon kind="database" className={activeDb === db.name ? "text-accent" : "text-text-tertiary"} />
+                {db.name}
+              </span>
             </button>
           </div>
           {expandedDbs.has(db.name) &&
-            db.schemas.map((schema) => {
+            db.schemas
+              .filter((schema) => {
+                if (!q) return true;
+                if (matches(schema.name)) return true;
+                for (const table of schema.tables) if (matches(table.name)) return true;
+                return false;
+              })
+              .map((schema) => {
               const schemaKey = `${db.name}.${schema.name}`;
               return (
                 <div key={schemaKey} className="ml-3">
@@ -136,11 +244,16 @@ function SchemaBrowser({
                       }`}
                       title="List tables (INFORMATION_SCHEMA)"
                     >
-                      {schema.name}
+                      <span className="inline-flex items-center gap-2">
+                        <Icon kind="schema" className={activeSchemaKey === schemaKey && !activeTable ? "text-accent" : "text-text-tertiary"} />
+                        {schema.name}
+                      </span>
                     </button>
                   </div>
                   {expandedSchemas.has(schemaKey) &&
-                    schema.tables.map((table) => {
+                    schema.tables
+                      .filter((table) => (q ? matches(table.name) : true))
+                      .map((table) => {
                       const key = `${table.database}.${table.schema}.${table.name}`;
                       const active =
                         activeTable &&
@@ -158,7 +271,10 @@ function SchemaBrowser({
                           }`}
                           title="List columns (INFORMATION_SCHEMA)"
                         >
-                          {table.name}
+                          <span className="inline-flex items-center gap-2">
+                            <Icon kind="table" className={active ? "text-accent" : "text-text-tertiary"} />
+                            {table.name}
+                          </span>
                         </button>
                       );
                     })}
@@ -187,6 +303,7 @@ export function CodeView() {
   const [activeSchemaKey, setActiveSchemaKey] = useState<string | null>(null);
   const [activeTable, setActiveTable] = useState<MockTable | null>(null);
   const [showManage, setShowManage] = useState(false);
+  const [navFilter, setNavFilter] = useState("");
   const [query, setQuery] = useState("SELECT table_catalog, table_schema, table_name FROM information_schema.tables ORDER BY 1,2,3;");
   const [result, setResult] = useState(() => ({
     columns: [] as string[],
@@ -241,37 +358,77 @@ export function CodeView() {
     <div className="flex flex-1 min-h-0 bg-background">
       <aside className="w-[310px] shrink-0 border-r border-sidebar-border bg-surface flex flex-col">
         <div className="px-3 py-2 border-b border-sidebar-border">
-          <p className="text-[10px] uppercase tracking-wide text-text-tertiary">SQL Explorer</p>
-          <p className="text-xs text-foreground mt-0.5">DBeaver-style schema browser (mock)</p>
-        </div>
-        <div className="px-3 py-2 border-b border-sidebar-border">
-          <label className="block text-[10px] text-text-tertiary mb-1">Connection</label>
-          <div className="flex items-center gap-2">
-            <select
-              value={connectionId}
-              onChange={(e) => setConnectionId(e.target.value)}
-              className="flex-1 border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs"
-            >
-              {connections.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setShowManage(true)}
-              className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-              title="Manage mock connections"
-            >
-              Manage
-            </button>
+          <p className="text-[10px] uppercase tracking-wider text-text-tertiary font-semibold">
+            Database Navigator
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-[10px] text-text-tertiary">
+                  Connection
+                </label>
+                {connection && (
+                  <span className="text-[10px] text-text-tertiary font-mono truncate" title={connection.host}>
+                    {connection.host}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <select
+                  value={connectionId}
+                  onChange={(e) => setConnectionId(e.target.value)}
+                  className="flex-1 border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs"
+                >
+                  {connections.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowManage(true)}
+                  className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                  title="Manage mock connections"
+                >
+                  Manage
+                </button>
+              </div>
+            </div>
           </div>
-          {connection && (
-            <p className="text-[10px] text-text-tertiary mt-1">
-              {connection.engine} · {connection.host}
-            </p>
-          )}
+
+          <div className="mt-2 relative">
+            <svg
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-text-tertiary"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={navFilter}
+              onChange={(e) => setNavFilter(e.target.value)}
+              placeholder="Filter db/schema/table..."
+              className="w-full rounded-md border border-sidebar-border bg-background pl-8 pr-8 py-1.5 text-xs text-foreground placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            {navFilter.trim() && (
+              <button
+                type="button"
+                onClick={() => setNavFilter("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-foreground cursor-pointer"
+                title="Clear filter"
+              >
+                &#x2715;
+              </button>
+            )}
+          </div>
         </div>
 
         <SchemaBrowser
@@ -285,11 +442,12 @@ export function CodeView() {
           setActiveSchemaKey={setActiveSchemaKey}
           activeTable={activeTable}
           setActiveTable={setActiveTable}
+          filter={navFilter}
         />
 
         <div className="p-2 border-t border-sidebar-border">
           <p className="text-[10px] text-text-tertiary">
-            Hint: query `information_schema.tables` / `information_schema.columns`
+            Hint: click schema/table to prep `INFORMATION_SCHEMA` queries
           </p>
         </div>
       </aside>
@@ -297,11 +455,19 @@ export function CodeView() {
       <section className="flex-1 min-w-0 flex flex-col">
         <div className="px-4 py-2 border-b border-sidebar-border bg-surface flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-foreground">
-              {connection?.name ?? "No connection selected"}
-            </p>
-            <p className="text-[10px] text-text-tertiary">
-              Mock query runner (contract aligned to INFORMATION_SCHEMA)
+            <div className="flex items-center gap-2">
+              <Icon kind="connection" className="text-text-tertiary" />
+              <p className="text-xs font-medium text-foreground">
+                {connection?.name ?? "No connection selected"}
+              </p>
+              {connection && (
+                <span className="text-[10px] text-text-tertiary px-2 py-0.5 rounded-full border border-sidebar-border bg-surface-hover/40">
+                  {connection.engine}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-text-tertiary mt-0.5">
+              Mock query runner (aligned to INFORMATION_SCHEMA)
             </p>
             <p className="text-[10px] text-text-tertiary mt-1">
               Selection:{" "}
