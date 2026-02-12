@@ -49,7 +49,7 @@ export function SafetyEnforcesView() {
           Team Leader
         </p>
         <h2 className="text-lg font-semibold text-foreground mt-1">
-          Safety enforces
+          Safety guardrails
         </h2>
         <p className="text-sm text-text-secondary mt-2 max-w-2xl">
           Guardrails de equipo para evitar queries pesadas o riesgosas. En este scaffold, el enforcement es mock/determinístico, pero el UX deja claro qué reglas se aplicarían.
@@ -112,4 +112,3 @@ export function SafetyEnforcesView() {
     </div>
   );
 }
-

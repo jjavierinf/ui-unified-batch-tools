@@ -28,7 +28,7 @@ const planItems: PlanItem[] = [
   { label: "9. DDL visible + DQA realista (2 tipos)", status: "done" },
   { label: "10. Pro folder focus -> pipeline summary", status: "done" },
   { label: "11. SQL Explorer manage connections", status: "done" },
-  { label: "12. Safety enforces (Team Leader)", status: "current" },
+  { label: "12. Safety guardrails (Team Leader)", status: "current" },
 ];
 
 const outOfScopeItems = [

@@ -193,6 +193,11 @@ export function CodeView() {
     rows: [] as Array<Record<string, string | number>>,
     notice: "Ready",
   }));
+  const [policyBlock, setPolicyBlock] = useState<null | {
+    title: string;
+    detail: string;
+    whatToDo: string;
+  }>(null);
   const [lastMetrics, setLastMetrics] = useState<{ idlePct: number; estRuntimeMs: number } | null>(null);
 
   const connection = useMemo<MockConnection | null>(
@@ -209,31 +214,26 @@ export function CodeView() {
     setLastMetrics({ idlePct, estRuntimeMs });
 
     if (idlePct < safety.minIdlePctExplorer) {
-      setResult({
-        columns: ["message"],
-        rows: [
-          {
-            message: `Blocked by Safety enforces: idle ${idlePct}% < min ${safety.minIdlePctExplorer}% (SQL Explorer).`,
-          },
-        ],
-        notice: "Blocked (mock enforcement)",
+      setPolicyBlock({
+        title: "Blocked by Safety guardrails (mock)",
+        detail: `Idle resources ${idlePct}% is below the team minimum (${safety.minIdlePctExplorer}%).`,
+        whatToDo: "Try later, or ask a Team Leader to lower the minimum idle threshold for SQL Explorer.",
       });
+      setResult({ columns: [], rows: [], notice: "Blocked (policy)" });
       return;
     }
 
     if (estRuntimeMs > safety.maxRuntimeMsExplorer) {
-      setResult({
-        columns: ["message"],
-        rows: [
-          {
-            message: `Blocked by Safety enforces: estimated runtime ${estRuntimeMs}ms > max ${safety.maxRuntimeMsExplorer}ms (SQL Explorer).`,
-          },
-        ],
-        notice: "Blocked (mock enforcement)",
+      setPolicyBlock({
+        title: "Blocked by Safety guardrails (mock)",
+        detail: `Estimated runtime ${estRuntimeMs}ms exceeds the team max (${safety.maxRuntimeMsExplorer}ms).`,
+        whatToDo: "Reduce the query scope (filters/partitions), add LIMIT for exploration, or ask a Team Leader to adjust the max runtime.",
       });
+      setResult({ columns: [], rows: [], notice: "Blocked (policy)" });
       return;
     }
 
+    setPolicyBlock(null);
     setResult(executeMockQuery(connection, query));
   };
 
@@ -372,8 +372,31 @@ export function CodeView() {
               </span>
             )}
           </div>
+          {policyBlock && (
+            <div className="m-4 rounded-lg border border-sidebar-border bg-surface p-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 text-badge-pending">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M12 8v4" />
+                    <path d="M12 16h.01" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{policyBlock.title}</p>
+                  <p className="text-xs text-text-secondary mt-1">{policyBlock.detail}</p>
+                  <p className="text-xs text-text-tertiary mt-2">
+                    <span className="font-semibold text-text-secondary">What to do:</span>{" "}
+                    {policyBlock.whatToDo}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           {result.columns.length === 0 ? (
-            <div className="p-4 text-xs text-text-tertiary">Run a query to see results.</div>
+            <div className="p-4 text-xs text-text-tertiary">
+              {policyBlock ? "Query blocked by policy." : "Pick a schema/table on the left, then Run query to see results."}
+            </div>
           ) : (
             <table className="w-full text-xs">
               <thead className="bg-surface sticky top-0">
