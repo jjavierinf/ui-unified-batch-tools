@@ -5,6 +5,7 @@ import { UnifiedHeader } from "./UnifiedHeader";
 import { CodeView } from "./CodeView";
 import { PipelineView } from "./PipelineView";
 import { ApprovalsView } from "./ApprovalsView";
+import { WhatNewGuide } from "./WhatNewGuide";
 
 export function WorkspaceShell() {
   const viewMode = useWorkspaceStore((s) => s.viewMode);
@@ -12,6 +13,7 @@ export function WorkspaceShell() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <UnifiedHeader />
+      <WhatNewGuide />
       {viewMode === "code" ? (
         <CodeView />
       ) : viewMode === "pipeline" ? (

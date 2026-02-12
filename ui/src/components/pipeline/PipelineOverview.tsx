@@ -107,6 +107,7 @@ export function PipelineOverview() {
             {filtered.length} of {dagConfigs.length} DAGs
           </span>
           <div className="inline-flex rounded-md border border-sidebar-border overflow-hidden">
+            <div data-tour="group-toggle" className="inline-flex">
             <button
               onClick={() => setGroupBy("tag")}
               className={`px-2 py-1 text-[10px] cursor-pointer ${
@@ -127,9 +128,10 @@ export function PipelineOverview() {
             >
               by integration
             </button>
+            </div>
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-2 text-[10px] text-text-tertiary">
+        <div data-tour="status-legend" className="mt-2 flex items-center gap-2 text-[10px] text-text-tertiary">
           <span className="uppercase tracking-wider">Status legend</span>
           <StatusBadge status="draft" />
           <StatusBadge status="submitted" />
@@ -235,6 +237,7 @@ export function PipelineOverview() {
                               e.stopPropagation();
                               cycleStatus(dag.dagName);
                             }}
+                            data-tour="status-cycle"
                             className="text-[10px] px-1.5 py-0.5 rounded border border-sidebar-border text-text-tertiary hover:text-foreground hover:bg-surface-hover cursor-pointer"
                             title="Cycle status for this pipeline (scaffold)"
                           >

@@ -44,6 +44,13 @@ Alcance implementado:
 - Se quitó creación libre de SQL desde el file tree en `Pipelines Pro`.
 - Mensaje explícito: creación de archivos solo vía flujos de pipeline.
 
+### What&apos;s New híbrido (checklist + tour)
+- Se agregó botón `What&apos;s new` en header con modal híbrido:
+  - checklist del plan (`done/current/next/out`),
+  - CTA `Start guided tour`.
+- Se integró tour guiado con `react-joyride` sobre puntos clave de F4.
+- Se agregó acceso rápido al PDF actual en header (`Current PDF`) y en ruta `/changelog/current`.
+
 ## Evidencia visual
 
 ### Overview grouped by tag + status lab (dark)
@@ -103,6 +110,21 @@ Qué mirar:
 Qué mirar:
 - No existe subtab lateral `Pipeline`.
 - Aparece tarjeta `Pipeline context` con botón `Open pipeline handoff` para saltar al detalle en `Simple`.
+
+### What&apos;s New checklist (dark)
+![Phase 4 whats new checklist dark](../screenshots/phase4-whats-new-checklist-dark.png)
+
+Qué mirar:
+- Modal con checklist del plan (done/current/next/out-of-scope).
+- CTA `Start guided tour`.
+- Link `Current PDF` visible en header.
+
+### What&apos;s New guided tour (dark)
+![Phase 4 whats new joyride dark](../screenshots/phase4-whats-new-joyride-dark.png)
+
+Qué mirar:
+- Tooltip de Joyride con navegación de pasos.
+- Spotlight sobre elementos clave (`Pipelines`, agrupación, badges, PDF).
 
 ## Límites scaffold
 - Contrato YAML aplicado a nivel UI/configuración, sin validación semántica profunda runtime.
