@@ -1,5 +1,6 @@
 import { FileStatus, PipelineTask, SqlFile } from "./types";
 import { isTransparentSystemDdlTask } from "./task-type-utils";
+import { STATUS_UI } from "./status-ui";
 
 const PRIORITY: Record<FileStatus, number> = {
   draft: 0,
@@ -12,11 +13,11 @@ const PRIORITY: Record<FileStatus, number> = {
 const ORDER: FileStatus[] = ["draft", "saved_local", "submitted", "pending_approval", "approved"];
 
 export const STATUS_MEANING: Record<FileStatus, string> = {
-  draft: "Local work in progress.",
-  saved_local: "Saved locally and ready to push.",
-  submitted: "Sent to environment branch.",
-  pending_approval: "Submitted to prod, waiting leader approval.",
-  approved: "Approved and merged to main.",
+  draft: STATUS_UI.draft.meaning,
+  saved_local: STATUS_UI.saved_local.meaning,
+  submitted: STATUS_UI.submitted.meaning,
+  pending_approval: STATUS_UI.pending_approval.meaning,
+  approved: STATUS_UI.approved.meaning,
 };
 
 export function getPipelineStatus(
