@@ -14,3 +14,4 @@ Este directorio guarda changelogs por iteración/branch sin tocar el historial p
 - `2026-02-12-phase-9-ddl-stage-and-dqa-examples.md`
 - `2026-02-12-phase-10-pro-folder-focus-pipeline-summary.md`
 - `2026-02-12-phase-11-sql-explorer-manage-connections.md`
+- `2026-02-12-phase-12-safety-enforces-leader.md`

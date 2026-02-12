@@ -72,6 +72,26 @@ const reviewsTab: { key: ViewMode; label: string; icon: React.ReactNode } = {
   ),
 };
 
+const safetyTab: { key: ViewMode; label: string; icon: React.ReactNode } = {
+  key: "safety",
+  label: "Safety",
+  icon: (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  ),
+};
+
 export function UnifiedHeader() {
   const viewMode = useWorkspaceStore((s) => s.viewMode);
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
@@ -86,7 +106,7 @@ export function UnifiedHeader() {
   const [showProdConfirm, setShowProdConfirm] = React.useState(false);
 
   const isLeader = currentUser?.role === "leader";
-  const tabs = isLeader ? [...baseTabs, reviewsTab] : baseTabs;
+  const tabs = isLeader ? [...baseTabs, safetyTab, reviewsTab] : baseTabs;
 
   const pendingCount = Object.values(files).filter(
     (f) => f.status === "pending_approval"
@@ -135,13 +155,15 @@ export function UnifiedHeader() {
             <button
               key={tab.key}
               onClick={() => setViewMode(tab.key)}
-              data-tour={
-                tab.key === "pipeline"
-                  ? "nav-pipelines"
-                  : tab.key === "approvals"
-                    ? "nav-reviews"
-                    : undefined
-              }
+            data-tour={
+              tab.key === "pipeline"
+                ? "nav-pipelines"
+                : tab.key === "safety"
+                  ? "nav-safety"
+                : tab.key === "approvals"
+                  ? "nav-reviews"
+                  : undefined
+            }
               className={`flex items-center gap-1.5 px-3 h-full text-xs font-medium border-b-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                 viewMode === tab.key
                   ? "text-foreground border-accent"
