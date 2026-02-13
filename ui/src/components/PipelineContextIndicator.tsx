@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useEditorStore } from "@/lib/store";
 import { usePipelineStore } from "@/lib/pipeline-store";
+import { taskMatchesFile } from "@/lib/task-files";
 
 export function PipelineContextIndicator() {
   const selectedFile = useEditorStore((s) => s.selectedFile);
@@ -11,7 +12,7 @@ export function PipelineContextIndicator() {
 
   const pipelineInfo = useMemo(() => {
     if (!selectedFile) return null;
-    const task = tasks.find((t) => t.sqlFilePath === selectedFile);
+    const task = tasks.find((t) => taskMatchesFile(t, selectedFile));
     if (!task) return null;
     const config = dagConfigs.find((d) => d.dagName === task.dagName);
     return config

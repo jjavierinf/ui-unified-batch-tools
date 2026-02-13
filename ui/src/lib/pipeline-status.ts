@@ -1,6 +1,7 @@
 import { FileStatus, PipelineTask, SqlFile } from "./types";
 import { isTransparentSystemDdlTask } from "./task-type-utils";
 import { STATUS_UI } from "./status-ui";
+import { getTaskFilePaths } from "./task-files";
 
 const PRIORITY: Record<FileStatus, number> = {
   draft: 0,
@@ -29,10 +30,13 @@ export function getPipelineStatus(
   for (const task of tasks) {
     if (task.dagName !== dagName) continue;
     if (isTransparentSystemDdlTask(task.name, task.sqlFilePath)) continue;
-    const file = files[task.sqlFilePath];
-    if (!file) continue;
-    if (PRIORITY[file.status] < PRIORITY[status]) {
-      status = file.status;
+    const paths = getTaskFilePaths(task);
+    for (const path of paths) {
+      const file = files[path];
+      if (!file) continue;
+      if (PRIORITY[file.status] < PRIORITY[status]) {
+        status = file.status;
+      }
     }
   }
   return status;
