@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MockConnection,
   MockDatabase,
@@ -98,6 +98,70 @@ function Icon({
   );
 }
 
+function SqlServerLogo({ size = 20 }: { size?: number }) {
+  // Simplified SQL Server logo — red diamond shape with database cylinder
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Red background */}
+      <rect x="4" y="4" width="56" height="56" rx="8" fill="#CC2927" />
+      {/* Database cylinder */}
+      <ellipse cx="32" cy="20" rx="14" ry="5" fill="#fff" fillOpacity=".9" />
+      <path d="M18 20v24c0 2.8 6.3 5 14 5s14-2.2 14-5V20" fill="#fff" fillOpacity=".35" />
+      <ellipse cx="32" cy="44" rx="14" ry="5" fill="#fff" fillOpacity=".5" />
+      <path d="M18 20v24c0 2.8 6.3 5 14 5s14-2.2 14-5V20" stroke="#fff" strokeWidth="2" fill="none" />
+      <path d="M18 28c0 2.8 6.3 5 14 5s14-2.2 14-5" stroke="#fff" strokeWidth="1.5" strokeOpacity=".6" fill="none" />
+      <path d="M18 36c0 2.8 6.3 5 14 5s14-2.2 14-5" stroke="#fff" strokeWidth="1.5" strokeOpacity=".6" fill="none" />
+    </svg>
+  );
+}
+
+function PostgresLogo({ size = 20 }: { size?: number }) {
+  // Slonik — elephant head profile, optimized for small sizes
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="56" height="56" rx="8" fill="#336791" />
+      {/* Elephant head profile — facing left */}
+      <path
+        d="M44 16c-2-3-6-5-10-5-7 0-13 5-13 12 0 3 1 5 3 7l-5 3c-1 .7-.5 2 .6 2h4
+           l1 8c.2 1.5 1.5 2.5 3 2.5h2l.5-7h6l.5 7h2c1.5 0 2.8-1 3-2.5l1-8h3
+           c1.2 0 1.8-1.2 1-2l-4-4c1.5-2 2.5-4.5 2.5-7 0-2.5-.7-4.5-1.1-5z"
+        fill="white"
+      />
+      {/* Ear — big curved shape on right side of head */}
+      <path
+        d="M40 14c4 2 6 6 6 10-1 3-3 4-5 3"
+        stroke="white"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Eye */}
+      <circle cx="27" cy="22" r="2" fill="#336791" />
+      {/* Trunk curling down */}
+      <path
+        d="M21 30c-2 2-4 6-3 10 .3 1 1 1.5 1.5 1"
+        stroke="#336791"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function GenericDbLogo({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="56" height="56" rx="8" fill="#6B7280" />
+      <ellipse cx="32" cy="18" rx="14" ry="5" fill="#fff" fillOpacity=".8" />
+      <path d="M18 18v28c0 2.8 6.3 5 14 5s14-2.2 14-5V18" fill="#fff" fillOpacity=".25" />
+      <path d="M18 18v28c0 2.8 6.3 5 14 5s14-2.2 14-5V18" stroke="#fff" strokeWidth="2" fill="none" />
+      <path d="M18 27c0 2.8 6.3 5 14 5s14-2.2 14-5" stroke="#fff" strokeWidth="1.5" strokeOpacity=".5" fill="none" />
+      <path d="M18 36c0 2.8 6.3 5 14 5s14-2.2 14-5" stroke="#fff" strokeWidth="1.5" strokeOpacity=".5" fill="none" />
+    </svg>
+  );
+}
+
 function EngineIcon({
   engine,
   className,
@@ -107,40 +171,25 @@ function EngineIcon({
 }) {
   const e = (engine ?? "").toLowerCase();
 
-  // “Logo-like” but generic (avoid real brand assets).
-  // SQL Server: database + SQL tag.
   if (e.includes("sql server") || e.includes("mssql")) {
     return (
-      <span
-        className={`inline-flex items-center gap-1 rounded-md border border-sidebar-border bg-surface-hover/40 px-1.5 py-1 text-[10px] font-semibold text-text-secondary ${className ?? ""}`}
-        title={engine}
-      >
-        <Icon kind="database" className="text-text-tertiary" />
-        SQL
+      <span className={`inline-flex shrink-0 ${className ?? ""}`} title={engine}>
+        <SqlServerLogo />
       </span>
     );
   }
 
-  // Postgres: database + PG tag.
   if (e.includes("postgres")) {
     return (
-      <span
-        className={`inline-flex items-center gap-1 rounded-md border border-sidebar-border bg-surface-hover/40 px-1.5 py-1 text-[10px] font-semibold text-text-secondary ${className ?? ""}`}
-        title={engine}
-      >
-        <Icon kind="database" className="text-text-tertiary" />
-        PG
+      <span className={`inline-flex shrink-0 ${className ?? ""}`} title={engine}>
+        <PostgresLogo />
       </span>
     );
   }
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-md border border-sidebar-border bg-surface-hover/40 px-1.5 py-1 text-[10px] font-semibold text-text-secondary ${className ?? ""}`}
-      title={engine}
-    >
-      <Icon kind="database" className="text-text-tertiary" />
-      DB
+    <span className={`inline-flex shrink-0 ${className ?? ""}`} title={engine}>
+      <GenericDbLogo />
     </span>
   );
 }
@@ -366,6 +415,39 @@ export function CodeView() {
   }>(null);
   const [lastMetrics, setLastMetrics] = useState<{ idlePct: number; estRuntimeMs: number } | null>(null);
 
+  // Resizable sidebar
+  const MIN_SIDEBAR = 220;
+  const MAX_SIDEBAR = 500;
+  const [sidebarW, setSidebarW] = useState(310);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const onPointerMove = (ev: PointerEvent) => {
+      if (!isResizingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      setSidebarW(Math.min(MAX_SIDEBAR, Math.max(MIN_SIDEBAR, ev.clientX - rect.left)));
+    };
+    const stopResize = () => {
+      if (!isResizingRef.current) return;
+      isResizingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", stopResize);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", stopResize);
+    };
+  }, []);
+
+  const startResize = () => {
+    isResizingRef.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
   const connection = useMemo<MockConnection | null>(
     () => connections.find((c) => c.id === connectionId) ?? connections[0] ?? null,
     [connectionId, connections]
@@ -422,8 +504,8 @@ export function CodeView() {
   };
 
   return (
-    <div className="flex flex-1 min-h-0 bg-background">
-      <aside className="w-[310px] shrink-0 border-r border-sidebar-border bg-surface flex flex-col">
+    <div ref={containerRef} className="flex flex-1 min-h-0 bg-background">
+      <aside className="shrink-0 border-r border-sidebar-border bg-surface flex flex-col" style={{ width: `${sidebarW}px` }}>
         <div className="px-3 py-2 border-b border-sidebar-border">
           <p className="text-[10px] uppercase tracking-wider text-text-tertiary font-semibold">
             Database Navigator
@@ -440,12 +522,12 @@ export function CodeView() {
                   </span>
                 )}
               </div>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex items-center gap-1.5">
                 <EngineIcon engine={connection?.engine} />
                 <select
                   value={connectionId}
                   onChange={(e) => setConnectionId(e.target.value)}
-                  className="flex-1 border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs"
+                  className="flex-1 min-w-0 border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs truncate"
                 >
                   {connections.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -456,10 +538,13 @@ export function CodeView() {
                 <button
                   type="button"
                   onClick={() => setShowManage(true)}
-                  className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-                  title="Manage mock connections"
+                  className="shrink-0 p-1.5 rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                  title="Manage connections"
                 >
-                  Manage
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -520,6 +605,14 @@ export function CodeView() {
         </div>
       </aside>
 
+      <div
+        className="w-1 shrink-0 cursor-col-resize bg-sidebar-border/30 hover:bg-accent/50 transition-colors"
+        onPointerDown={startResize}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+      />
+
       <section className="flex-1 min-w-0 flex flex-col">
         <Breadcrumb segments={breadcrumbSegments} />
         <div className="px-4 py-2 border-b border-sidebar-border bg-surface flex items-center justify-between">
@@ -530,11 +623,9 @@ export function CodeView() {
                 {connection?.name ?? "No connection selected"}
               </p>
               {connection && (
-                <span className="text-[10px] text-text-tertiary px-2 py-0.5 rounded-full border border-sidebar-border bg-surface-hover/40">
-                  <span className="inline-flex items-center gap-1.5">
-                    <EngineIcon engine={connection.engine} className="border-0 bg-transparent px-0 py-0" />
-                    <span className="text-text-tertiary">{connection.engine}</span>
-                  </span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] text-text-tertiary px-2 py-0.5 rounded-full border border-sidebar-border bg-surface-hover/40">
+                  <EngineIcon engine={connection.engine} />
+                  <span>{connection.engine}</span>
                 </span>
               )}
             </div>
@@ -574,28 +665,11 @@ export function CodeView() {
             const hasLimitLike = /\blimit\b|\btop\b/i.test(query);
             if (!isSelect || hasLimitLike) return null;
             return (
-              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-sidebar-border bg-surface px-3 py-2">
-                <div className="text-[11px] text-text-secondary">
-                  Suggested: add <code>LIMIT {safety.defaultLimitRowsExplorer}</code> (team default).
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const limitClause = `\\nLIMIT ${safety.defaultLimitRowsExplorer};`;
-                    setQuery((q) => {
-                      if (/\blimit\b|\btop\b/i.test(q)) return q;
-                      const trimmed = q.trimEnd();
-                      const endsWithSemicolon = trimmed.endsWith(";");
-                      if (endsWithSemicolon) {
-                        return trimmed.slice(0, -1) + limitClause;
-                      }
-                      return trimmed + limitClause;
-                    });
-                  }}
-                  className="px-3 py-1.5 text-xs rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-                >
-                  Apply LIMIT
-                </button>
+              <div className="mt-2 rounded-md border border-sidebar-border bg-surface px-3 py-2">
+                <p className="text-[11px] text-text-secondary">
+                  <span className="font-medium text-badge-pending">LIMIT {safety.defaultLimitRowsExplorer}</span>{" "}
+                  rows — applied implicitly to SELECT queries without an explicit LIMIT/TOP.
+                </p>
               </div>
             );
           })()}
@@ -683,12 +757,7 @@ export function CodeView() {
               )}
 
               <div className="border border-sidebar-border rounded-md overflow-hidden bg-background">
-                <div className="grid grid-cols-[1fr_1fr_90px] gap-2 px-3 py-2 bg-surface-hover/40 text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
-                  <span>Name</span>
-                  <span>Host</span>
-                  <span className="text-right">Actions</span>
-                </div>
-                <div className="max-h-[340px] overflow-auto">
+                <div className="max-h-[400px] overflow-auto divide-y divide-sidebar-border/60">
                   {connections.map((c) => {
                     const isActive = c.id === connectionId;
                     const canRemove = connections.length > 1;
@@ -697,66 +766,79 @@ export function CodeView() {
                     return (
                       <div
                         key={c.id}
-                        className={`grid grid-cols-[1fr_1fr_90px] gap-2 px-3 py-2 border-t border-sidebar-border/60 items-center ${
-                          isActive ? "bg-accent/5" : ""
-                        }`}
+                        className={`px-4 py-3 ${isActive ? "bg-accent/5" : ""}`}
                       >
-                        <input
-                          type="text"
-                          value={c.name}
-                          onChange={(e) => updateConnection(c.id, { name: e.target.value })}
-                          className={`w-full border rounded-md px-2 py-1 bg-background text-foreground text-xs ${
-                            nameOk ? "border-sidebar-border" : "border-red-500"
-                          }`}
-                          spellCheck={false}
-                        />
-                        <input
-                          type="text"
-                          value={c.host}
-                          onChange={(e) => updateConnection(c.id, { host: e.target.value })}
-                          className={`w-full border rounded-md px-2 py-1 bg-background text-foreground text-xs font-mono ${
-                            hostOk ? "border-sidebar-border" : "border-red-500"
-                          }`}
-                          spellCheck={false}
-                        />
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setConnectionId(c.id)}
-                            className={`text-[11px] px-2 py-1 rounded border border-sidebar-border cursor-pointer ${
-                              isActive
-                                ? "bg-accent text-white border-accent"
-                                : "text-text-secondary hover:bg-surface-hover"
-                            }`}
-                          >
-                            {isActive ? "Active" : "Use"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isActive) {
-                                const ok = window.confirm(
-                                  "Remove the active connection? (Scaffold-only: this does not affect any real DB.)"
-                                );
-                                if (!ok) return;
-                              }
-                              removeConnection(c.id);
-                            }}
-                            disabled={!canRemove}
-                            className={`text-[11px] px-2 py-1 rounded border border-sidebar-border ${
-                              canRemove
-                                ? "text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-                                : "text-text-tertiary cursor-not-allowed"
-                            }`}
-                            title={canRemove ? "Remove" : "Keep at least 1 connection"}
-                          >
-                            Remove
-                          </button>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? "bg-accent" : "bg-text-tertiary/40"}`} />
+                            <span className="text-xs font-medium text-foreground truncate">{c.name || "Unnamed"}</span>
+                            <span className="text-[10px] text-text-tertiary font-mono truncate">{c.host}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setConnectionId(c.id)}
+                              className={`text-[11px] px-2 py-1 rounded border border-sidebar-border cursor-pointer ${
+                                isActive
+                                  ? "bg-accent text-white border-accent"
+                                  : "text-text-secondary hover:bg-surface-hover"
+                              }`}
+                            >
+                              {isActive ? "Active" : "Use"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isActive) {
+                                  const ok = window.confirm(
+                                    "Remove the active connection? (Scaffold-only: this does not affect any real DB.)"
+                                  );
+                                  if (!ok) return;
+                                }
+                                removeConnection(c.id);
+                              }}
+                              disabled={!canRemove}
+                              className={`text-[11px] px-2 py-1 rounded border border-sidebar-border ${
+                                canRemove
+                                  ? "text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                                  : "text-text-tertiary cursor-not-allowed"
+                              }`}
+                              title={canRemove ? "Remove" : "Keep at least 1 connection"}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] text-text-tertiary mb-0.5">Name</label>
+                            <input
+                              type="text"
+                              value={c.name}
+                              onChange={(e) => updateConnection(c.id, { name: e.target.value })}
+                              className={`w-full border rounded-md px-2 py-1.5 bg-background text-foreground text-xs ${
+                                nameOk ? "border-sidebar-border" : "border-red-500"
+                              }`}
+                              spellCheck={false}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-text-tertiary mb-0.5">Host</label>
+                            <input
+                              type="text"
+                              value={c.host}
+                              onChange={(e) => updateConnection(c.id, { host: e.target.value })}
+                              className={`w-full border rounded-md px-2 py-1.5 bg-background text-foreground text-xs font-mono ${
+                                hostOk ? "border-sidebar-border" : "border-red-500"
+                              }`}
+                              spellCheck={false}
+                            />
+                          </div>
                         </div>
                         {(!nameOk || !hostOk) && (
-                          <div className="col-span-3 text-[11px] text-red-400 -mt-1">
+                          <p className="text-[11px] text-red-400 mt-1">
                             {!nameOk ? "Name is required." : ""} {!hostOk ? "Host is required." : ""}
-                          </div>
+                          </p>
                         )}
                       </div>
                     );

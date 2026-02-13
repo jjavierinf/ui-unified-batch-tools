@@ -82,7 +82,7 @@ const RAW_MOCK_CONNECTIONS: MockConnection[] = [
   {
     id: "demo-sqlserver-primary",
     name: "demo_sqlserver_primary",
-    engine: "SQL Server (mock)",
+    engine: "SQL Server",
     host: "mock-sql-primary.internal",
     databases: [
       {
@@ -108,6 +108,27 @@ const RAW_MOCK_CONNECTIONS: MockConnection[] = [
           {
             name: "tr",
             tables: MODEL_TABLES.filter((t) => t.database === "db_data_model" && t.schema === "tr"),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "demo-postgres-analytics",
+    name: "demo_postgres_analytics",
+    engine: "PostgreSQL",
+    host: "mock-pg-analytics.internal",
+    databases: [
+      {
+        name: "db_stage",
+        schemas: [
+          {
+            name: "dbo",
+            tables: STAGE_TABLES.filter((t) => t.database === "db_stage" && t.schema === "dbo"),
+          },
+          {
+            name: "tr",
+            tables: STAGE_TABLES.filter((t) => t.database === "db_stage" && t.schema === "tr"),
           },
         ],
       },
