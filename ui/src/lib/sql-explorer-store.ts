@@ -71,7 +71,7 @@ export const useSqlExplorerStore = create<SqlExplorerStore>()(
           activeConnectionId: DEFAULT_ACTIVE,
         }),
     }),
-    { name: "sql-explorer-store-v1" }
+    { name: "sql-explorer-store-v2" }
   )
 );
 

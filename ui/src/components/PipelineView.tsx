@@ -51,6 +51,12 @@ export function PipelineView() {
     setPipelineSubMode("pro");
     setOpenCreate(false);
     addToast(`Pipeline ${result.displayFolder} created with 5 stage tasks`);
+
+    // Scroll the new folder into view after React renders
+    requestAnimationFrame(() => {
+      const folderEl = document.querySelector(`[data-path="${result.rootFolderPath}"]`);
+      folderEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   };
 
   return (

@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { useEditorStore } from "@/lib/store";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useWorkspaceStore, ViewMode } from "@/lib/workspace-store";
 import { UnifiedHeader } from "./UnifiedHeader";
 import { CodeView } from "./CodeView";
 import { PipelineView } from "./PipelineView";
@@ -13,7 +14,22 @@ import { ChangesSidebar } from "./ChangesSidebar";
 
 export function WorkspaceShell() {
   const viewMode = useWorkspaceStore((s) => s.viewMode);
+  const restoreViewMode = useWorkspaceStore((s) => s.restoreViewMode);
   const changesPanelOpen = useEditorStore((s) => s.changesPanelOpen);
+
+  // Seed current view into history on mount + listen for back/forward
+  useEffect(() => {
+    // Replace the initial entry so the first state has viewMode
+    window.history.replaceState({ viewMode }, "", undefined);
+
+    const onPopState = (ev: PopStateEvent) => {
+      const mode = ev.state?.viewMode as ViewMode | undefined;
+      if (mode) restoreViewMode(mode);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

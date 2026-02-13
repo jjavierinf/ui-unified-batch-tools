@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { useEditorStore } from "@/lib/store";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
@@ -30,12 +31,14 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const addDagTag = usePipelineStore((s) => s.addDagTag);
   const removeDagTag = usePipelineStore((s) => s.removeDagTag);
   const updateDagField = usePipelineStore((s) => s.updateDagField);
+  const reorderTask = usePipelineStore((s) => s.reorderTask);
   const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
   const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
   const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const selectFile = useEditorStore((s) => s.selectFile);
   const [showDagConfig, setShowDagConfig] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const safety = useSafetyStore((s) => s.config);
   const addToast = useToastStore((s) => s.addToast);
 
@@ -84,8 +87,6 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
     }
     addToast(`Simulate run OK (mock) · idle ${idlePct}% · est ${estRuntimeMs}ms`);
   };
-
-  const activeTask = pipelineTasks.find((t) => t.sqlFilePath === selectedFile);
 
   return (
     <div className="flex flex-col h-full">
@@ -252,50 +253,100 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
             <span className="text-[10px] uppercase tracking-wider text-text-tertiary font-medium">
               Tasks ({pipelineTasks.length})
             </span>
+            <span className="text-[10px] text-text-tertiary ml-auto flex items-center gap-1">
+              <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" className="opacity-60">
+                <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
+                <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
+                <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
+              </svg>
+              Drag
+            </span>
           </div>
-          <div className="space-y-0.5 ml-1">
-            {pipelineTasks.map((task, index) => {
-              const isCurrent = task.sqlFilePath === selectedFile;
-              return (
-                <div
-                  key={task.id}
-                  onClick={() => selectFile(task.sqlFilePath)}
-                  className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
-                    isCurrent
-                      ? "bg-accent/10 text-accent font-medium"
-                      : "text-text-secondary hover:bg-surface-hover cursor-pointer"
-                  }`}
-                >
-                  <span className="text-[10px] text-text-tertiary w-3 text-right shrink-0">
-                    {index + 1}
-                  </span>
-                  <span className="truncate">{task.name}</span>
-                  {files[task.sqlFilePath] && (
-                    <span className="ml-auto">
-                      <StatusBadge status={files[task.sqlFilePath].status} />
-                    </span>
-                  )}
-                  {isCurrent && (
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="currentColor"
-                      className="shrink-0"
-                    >
-                      <circle cx="4" cy="4" r="3" />
-                    </svg>
-                  )}
+          <DragDropContext onDragEnd={(result: DropResult) => {
+            const { source, destination } = result;
+            if (!destination || source.index === destination.index) return;
+            reorderTask(dagName, source.index, destination.index);
+          }}>
+            <Droppable droppableId="pro-task-list">
+              {(provided) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-0.5 ml-1">
+                  {pipelineTasks.map((task, index) => {
+                    const isCurrent = task.sqlFilePath === selectedFile;
+                    const isConfigOpen = expandedTaskId === task.id;
+                    return (
+                      <Draggable key={task.id} draggableId={task.id} index={index}>
+                        {(dragProvided, snapshot) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            className={snapshot.isDragging ? "opacity-80" : ""}
+                          >
+                            <div
+                              className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-xs ${
+                                isCurrent
+                                  ? "bg-accent/10 text-accent font-medium"
+                                  : "text-text-secondary hover:bg-surface-hover"
+                              }`}
+                            >
+                              <div
+                                {...dragProvided.dragHandleProps}
+                                className="text-text-tertiary hover:text-text-secondary cursor-grab active:cursor-grabbing shrink-0"
+                                title="Drag to reorder"
+                              >
+                                <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
+                                  <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
+                                  <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
+                                  <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
+                                </svg>
+                              </div>
+                              <span className="text-[10px] text-text-tertiary w-3 text-right shrink-0">
+                                {index + 1}
+                              </span>
+                              <span
+                                onClick={() => selectFile(task.sqlFilePath)}
+                                className="truncate cursor-pointer flex-1"
+                              >
+                                {task.name}
+                              </span>
+                              {files[task.sqlFilePath] && (
+                                <StatusBadge status={files[task.sqlFilePath].status} />
+                              )}
+                              {task.taskConfig && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedTaskId(isConfigOpen ? null : task.id);
+                                  }}
+                                  className={`w-5 h-5 flex items-center justify-center rounded shrink-0 cursor-pointer ${
+                                    isConfigOpen
+                                      ? "text-accent bg-accent/10"
+                                      : "text-text-tertiary hover:text-foreground hover:bg-surface-hover"
+                                  }`}
+                                  title={isConfigOpen ? "Hide config" : "Show config"}
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                            {isConfigOpen && task.taskConfig && (
+                              <div className="ml-5 mt-1 mb-1 px-2 py-2 rounded-md border border-sidebar-border bg-background/50">
+                                <TaskConfigPanel task={task} onUpdateConfig={updateTaskConfig} />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
                 </div>
-              );
-            })}
-          </div>
-
-          {activeTask?.taskConfig && (
-            <div className="mt-2 px-2 py-2 rounded-md border border-sidebar-border bg-background/50">
-              <TaskConfigPanel task={activeTask} onUpdateConfig={updateTaskConfig} />
-            </div>
-          )}
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
       </div>
     </div>
