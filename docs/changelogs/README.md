@@ -24,3 +24,4 @@ Este directorio guarda changelogs por iteración/branch sin tocar el historial p
 - `2026-02-12-phase-19-whats-new-joyride-storytelling.md`
 - `2026-02-12-phase-20-sql-explorer-dbeaver-look.md`
 - `2026-02-12-phase-21-sql-explorer-conn-engine-icon.md`
+- `2026-02-13-phase-22-retail-demo-data.md`

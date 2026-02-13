@@ -1,664 +1,310 @@
-import { SqlFile, DagConfig } from "./types";
+import type { DagConfig, SqlFile } from "./types";
 import { anonymizeFiles, deepAnonymize } from "./demo-mode";
 
 function f(content: string): SqlFile {
   return { content, savedContent: content, status: "draft" };
 }
 
+type Stage = "ddl" | "extract" | "transform" | "load" | "dqa";
+
+function p(integration: string, pipeline: string, stage: Stage, file: string): string {
+  return `dags/${integration}/${pipeline}/${stage}/${file}`;
+}
+
+function ddlTable(db: "db_stage" | "db_data_model", tableName: string, columns: string[]): string {
+  const cols = columns.map((c) => `  ${c}`).join(",\n");
+  return (
+    `CREATE TABLE IF NOT EXISTS ${db}.${tableName} (\n` +
+    `${cols}\n` +
+    `)\n` +
+    `PRIMARY KEY (id)\n` +
+    `DISTRIBUTED BY HASH (id);\n`
+  );
+}
+
+const COMMON_COLS = ["id BIGINT", "created_at DATETIME", "updated_at DATETIME"] as const;
+
+const ORDER_COLS = [
+  ...COMMON_COLS,
+  "customer_id BIGINT",
+  "order_total DECIMAL(10,2)",
+  "currency STRING",
+  "order_status STRING",
+];
+
+const CUSTOMER_COLS = [
+  ...COMMON_COLS,
+  "email_hash STRING",
+  "country STRING",
+  "loyalty_tier STRING",
+];
+
+const INVENTORY_COLS = [
+  ...COMMON_COLS,
+  "sku STRING",
+  "warehouse_id STRING",
+  "qty_on_hand INT",
+];
+
+const STORE_SALES_COLS = [
+  ...COMMON_COLS,
+  "store_id STRING",
+  "sale_total DECIMAL(10,2)",
+  "payment_method STRING",
+];
+
+const CAMPAIGN_COLS = [
+  ...COMMON_COLS,
+  "campaign_id STRING",
+  "impressions INT",
+  "clicks INT",
+  "spend DECIMAL(10,2)",
+];
+
+function ddlBiCustom(tableName: string): string {
+  return (
+    `-- BI custom DDL (scaffold example)\n` +
+    `ALTER TABLE db_data_model.${tableName}\n` +
+    `ADD COLUMN IF NOT EXISTS demo_note STRING\n` +
+    `;\n`
+  );
+}
+
+function extractQuery(sourceTable: string): string {
+  return (
+    `-- Extract stage (example)\n` +
+    `SELECT *\n` +
+    `FROM ${sourceTable}\n` +
+    `WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 HOUR)\n` +
+    `;\n`
+  );
+}
+
+function transformQuery(stageTable: string, modelTable: string): string {
+  return (
+    `-- Transform stage (example)\n` +
+    `-- In real life this might also normalize fields, enrich dimensions, etc.\n` +
+    `INSERT INTO db_data_model.${modelTable}\n` +
+    `SELECT *\n` +
+    `FROM db_stage.${stageTable}\n` +
+    `WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 DAY)\n` +
+    `;\n`
+  );
+}
+
+function cleanupQuery(stageTable: string): string {
+  return (
+    `-- Cleanup (NOT DQA)\n` +
+    `DELETE FROM db_stage.${stageTable}\n` +
+    `WHERE updated_at < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 30 DAY)\n` +
+    `;\n`
+  );
+}
+
+function loadQuery(stageTable: string, modelTable: string): string {
+  return (
+    `-- Load stage (example)\n` +
+    `-- For a scaffold demo we keep it simple: stage -> model.\n` +
+    `INSERT INTO db_data_model.${modelTable}\n` +
+    `SELECT *\n` +
+    `FROM db_stage.${stageTable}\n` +
+    `WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 DAY)\n` +
+    `;\n`
+  );
+}
+
+function dqaRuleCheck(tableName: string): string {
+  return (
+    `-- DQA type A: single-query rule check (same DB)\n` +
+    `-- Alert if there are rows where updated_at is before created_at.\n` +
+    `SELECT\n` +
+    `  COUNT(*) AS invalid_rows\n` +
+    `FROM (\n` +
+    `  SELECT\n` +
+    `    CASE WHEN updated_at < created_at THEN 1 ELSE 0 END AS is_invalid\n` +
+    `  FROM db_data_model.${tableName}\n` +
+    `) t\n` +
+    `WHERE is_invalid = 1\n` +
+    `;\n`
+  );
+}
+
+function dqaSourceCountByDay(sourceTable: string): string {
+  return (
+    `-- DQA type B (source query): count per day in source\n` +
+    `SELECT\n` +
+    `  CAST(updated_at AS DATE) AS day,\n` +
+    `  COUNT(*) AS cnt\n` +
+    `FROM ${sourceTable}\n` +
+    `WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)\n` +
+    `GROUP BY 1\n` +
+    `ORDER BY 1\n` +
+    `;\n`
+  );
+}
+
+function dqaTargetCountByDay(modelTable: string): string {
+  return (
+    `-- DQA type B (target query): count per day in target\n` +
+    `SELECT\n` +
+    `  CAST(updated_at AS DATE) AS day,\n` +
+    `  COUNT(*) AS cnt\n` +
+    `FROM db_data_model.${modelTable}\n` +
+    `WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)\n` +
+    `GROUP BY 1\n` +
+    `ORDER BY 1\n` +
+    `;\n`
+  );
+}
+
 const RAW_INITIAL_FILES: Record<string, SqlFile> = {
-  // ── CRM_integration / AccountReference ──────────────────────────
-  "dags/CRM_integration/AccountReference/ddl/create_table_stage.sql": f(
-`CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountReference (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    customerID STRING,
-    lastLoginDateTime STRING,
-    lastPasswordResetDateTime STRING,
-    lastFailedLoginDateTime STRING,
-    lastResetPasswordRequestDateTime STRING,
-    lastClickResetPasswordEmailDateTime STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash)
-PROPERTIES(
-    "replication_num" = "2" ,
-    "enable_persistent_index" = "true"
-);`
+  // ── ecom_app / orders_daily (has DQA A + DQA B) ──
+  [p("ecom_app", "orders_daily", "ddl", "create_table_stage.sql")]: f(
+    ddlTable("db_stage", "orders", ORDER_COLS)
+  ),
+  [p("ecom_app", "orders_daily", "ddl", "create_table_data_model.sql")]: f(
+    ddlTable("db_data_model", "orders", ORDER_COLS)
+  ),
+  [p("ecom_app", "orders_daily", "ddl", "bi_custom_ddl.sql")]: f(
+    ddlBiCustom("orders")
+  ),
+  [p("ecom_app", "orders_daily", "extract", "extract_orders.sql")]: f(
+    extractQuery("src.orders_raw")
+  ),
+  [p("ecom_app", "orders_daily", "transform", "transform_orders.sql")]: f(
+    transformQuery("orders", "orders")
+  ),
+  [p("ecom_app", "orders_daily", "transform", "cleanup_stage.sql")]: f(
+    cleanupQuery("orders")
+  ),
+  [p("ecom_app", "orders_daily", "load", "load_orders.sql")]: f(
+    loadQuery("orders", "orders")
+  ),
+  [p("ecom_app", "orders_daily", "dqa", "orders_dates_sanity.sql")]: f(
+    dqaRuleCheck("orders")
+  ),
+  [p("ecom_app", "orders_daily", "dqa", "source_orders_count_by_day.sql")]: f(
+    dqaSourceCountByDay("src.orders_raw")
+  ),
+  [p("ecom_app", "orders_daily", "dqa", "target_orders_count_by_day.sql")]: f(
+    dqaTargetCountByDay("orders")
   ),
 
-  "dags/CRM_integration/AccountReference/ddl/create_table_data_model.sql": f(
-`CREATE TABLE IF NOT EXISTS db_data_model.Accounts_dbo_AccountReference (
-    customerID STRING,
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    lastLoginDateTime DATETIME,
-    lastPasswordResetDateTime DATETIME,
-    lastFailedLoginDateTime DATETIME,
-    lastResetPasswordRequestDateTime DATETIME,
-    lastClickResetPasswordEmailDateTime DATETIME
-)
-PRIMARY KEY (customerID)
-DISTRIBUTED BY HASH (customerID)
-PROPERTIES(
-    "replication_num" = "2",
-    "enable_persistent_index" = "true"
-);`
+  // ── ecom_app / customers_snapshot (only DQA A) ──
+  [p("ecom_app", "customers_snapshot", "ddl", "create_table_stage.sql")]: f(
+    ddlTable("db_stage", "customers", CUSTOMER_COLS)
+  ),
+  [p("ecom_app", "customers_snapshot", "ddl", "create_table_data_model.sql")]: f(
+    ddlTable("db_data_model", "customers", CUSTOMER_COLS)
+  ),
+  [p("ecom_app", "customers_snapshot", "ddl", "bi_custom_ddl.sql")]: f(
+    ddlBiCustom("customers")
+  ),
+  [p("ecom_app", "customers_snapshot", "extract", "extract_customers.sql")]: f(
+    extractQuery("src.customers_raw")
+  ),
+  [p("ecom_app", "customers_snapshot", "transform", "transform_customers.sql")]: f(
+    transformQuery("customers", "customers")
+  ),
+  [p("ecom_app", "customers_snapshot", "transform", "cleanup_stage.sql")]: f(
+    cleanupQuery("customers")
+  ),
+  [p("ecom_app", "customers_snapshot", "load", "load_customers.sql")]: f(
+    loadQuery("customers", "customers")
+  ),
+  [p("ecom_app", "customers_snapshot", "dqa", "customers_dates_sanity.sql")]: f(
+    dqaRuleCheck("customers")
   ),
 
-  "dags/CRM_integration/AccountReference/ddl/bi_custom_ddl.sql": f(
-`-- BI custom DDL (scaffold example)
-ALTER TABLE db_data_model.Accounts_dbo_AccountReference
-ADD COLUMN IF NOT EXISTS bi_note STRING
-;`
+  // ── ecom_app / inventory_hourly (incremental; only DQA B) ──
+  [p("ecom_app", "inventory_hourly", "ddl", "create_table_stage.sql")]: f(
+    ddlTable("db_stage", "inventory_levels", INVENTORY_COLS)
+  ),
+  [p("ecom_app", "inventory_hourly", "ddl", "create_table_data_model.sql")]: f(
+    ddlTable("db_data_model", "inventory_levels", INVENTORY_COLS)
+  ),
+  [p("ecom_app", "inventory_hourly", "ddl", "bi_custom_ddl.sql")]: f(
+    ddlBiCustom("inventory_levels")
+  ),
+  [p("ecom_app", "inventory_hourly", "extract", "extract_inventory_levels.sql")]: f(
+    extractQuery("src.inventory_levels_raw")
+  ),
+  [p("ecom_app", "inventory_hourly", "transform", "transform_inventory_levels.sql")]: f(
+    transformQuery("inventory_levels", "inventory_levels")
+  ),
+  [p("ecom_app", "inventory_hourly", "transform", "cleanup_stage.sql")]: f(
+    cleanupQuery("inventory_levels")
+  ),
+  [p("ecom_app", "inventory_hourly", "load", "load_inventory_levels.sql")]: f(
+    loadQuery("inventory_levels", "inventory_levels")
+  ),
+  [p("ecom_app", "inventory_hourly", "dqa", "source_inventory_levels_count_by_day.sql")]: f(
+    dqaSourceCountByDay("src.inventory_levels_raw")
+  ),
+  [p("ecom_app", "inventory_hourly", "dqa", "target_inventory_levels_count_by_day.sql")]: f(
+    dqaTargetCountByDay("inventory_levels")
   ),
 
-  "dags/CRM_integration/AccountReference/extract/data_model_task.sql": f(
-`SELECT *
-FROM Accounts_dbo_AccountReference
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 HOUR)
-;`
+  // ── store_pos / store_sales_daily (snapshot; DQA A) ──
+  [p("store_pos", "store_sales_daily", "ddl", "create_table_stage.sql")]: f(
+    ddlTable("db_stage", "store_sales", STORE_SALES_COLS)
+  ),
+  [p("store_pos", "store_sales_daily", "ddl", "create_table_data_model.sql")]: f(
+    ddlTable("db_data_model", "store_sales", STORE_SALES_COLS)
+  ),
+  [p("store_pos", "store_sales_daily", "ddl", "bi_custom_ddl.sql")]: f(
+    ddlBiCustom("store_sales")
+  ),
+  [p("store_pos", "store_sales_daily", "extract", "extract_store_sales.sql")]: f(
+    extractQuery("src.store_sales_raw")
+  ),
+  [p("store_pos", "store_sales_daily", "transform", "transform_store_sales.sql")]: f(
+    transformQuery("store_sales", "store_sales")
+  ),
+  [p("store_pos", "store_sales_daily", "transform", "cleanup_stage.sql")]: f(
+    cleanupQuery("store_sales")
+  ),
+  [p("store_pos", "store_sales_daily", "load", "load_store_sales.sql")]: f(
+    loadQuery("store_sales", "store_sales")
+  ),
+  [p("store_pos", "store_sales_daily", "dqa", "store_sales_dates_sanity.sql")]: f(
+    dqaRuleCheck("store_sales")
   ),
 
-  "dags/CRM_integration/AccountReference/transform/data_model_task.sql": f(
-`TRUNCATE TABLE db_data_model.Accounts_dbo_AccountReference
-;
-
-INSERT INTO
-db_data_model.Accounts_dbo_AccountReference
-SELECT
-\tupper(trim(customerID)),
-\tsaga_hash,
-\tsaga_real_run_ts,
-\tlastLoginDateTime,
-\tlastPasswordResetDateTime,
-\tlastFailedLoginDateTime,
-\tlastResetPasswordRequestDateTime,
-\tlastClickResetPasswordEmailDateTime
-FROM db_stage.Accounts_dbo_AccountReference
-WHERE
-\tsaga_logical_run_ts = '{{ ts | convert_utc_to_et }}'
-ORDER BY
-\tsaga_real_run_ts ASC
-;`
+  // ── ad_platform / campaign_metrics_hourly (incremental; DQA A) ──
+  [p("ad_platform", "campaign_metrics_hourly", "ddl", "create_table_stage.sql")]: f(
+    ddlTable("db_stage", "campaign_metrics", CAMPAIGN_COLS)
   ),
-
-  "dags/CRM_integration/AccountReference/transform/cleanup_logs.sql": f(
-`-- Cleanup logs (NOT DQA)
-DELETE FROM db_stage.Accounts_dbo_AccountReference
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 3 MONTH)
-;`
+  [p("ad_platform", "campaign_metrics_hourly", "ddl", "create_table_data_model.sql")]: f(
+    ddlTable("db_data_model", "campaign_metrics", CAMPAIGN_COLS)
   ),
-
-  "dags/CRM_integration/AccountReference/load/load_to_datamodel.sql": f(
-`-- Load stage (example)
--- In a real DAG, this would upsert into the final datamodel table.
-INSERT INTO db_data_model.Accounts_dbo_AccountReference
-SELECT *
-FROM db_stage.Accounts_dbo_AccountReference
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et }}'
-;`
+  [p("ad_platform", "campaign_metrics_hourly", "ddl", "bi_custom_ddl.sql")]: f(
+    ddlBiCustom("campaign_metrics")
   ),
-
-  "dags/CRM_integration/AccountReference/dqa/rule_check_accounts.sql": f(
-`-- DQA type 2: rule check inside the same DB (single query)
--- Example: flag records where balanceDate is in the future.
-SELECT
-  COUNT(*) AS invalid_rows
-FROM db_data_model.Accounts_dbo_AccountReference
-WHERE balanceDate > '{{ ts | convert_utc_to_et }}'
-;`
+  [p("ad_platform", "campaign_metrics_hourly", "extract", "extract_campaign_metrics.sql")]: f(
+    extractQuery("src.campaign_metrics_raw")
   ),
-
-  "dags/CRM_integration/AccountReference/dqa/source_count_by_day.sql": f(
-`-- DQA type 3 (source query): count per day in source
-SELECT
-  CAST(rowModified AS DATE) AS day,
-  COUNT(*) AS cnt
-FROM tr.AccountReference
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)
-GROUP BY 1
-ORDER BY 1;
-`
+  [p("ad_platform", "campaign_metrics_hourly", "transform", "transform_campaign_metrics.sql")]: f(
+    transformQuery("campaign_metrics", "campaign_metrics")
   ),
-
-  "dags/CRM_integration/AccountReference/dqa/target_count_by_day.sql": f(
-`-- DQA type 3 (target query): count per day in target
-SELECT
-  CAST(saga_logical_run_ts AS DATE) AS day,
-  COUNT(*) AS cnt
-FROM db_data_model.Accounts_dbo_AccountReference
-WHERE saga_logical_run_ts >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)
-GROUP BY 1
-ORDER BY 1;
-`
+  [p("ad_platform", "campaign_metrics_hourly", "transform", "cleanup_stage.sql")]: f(
+    cleanupQuery("campaign_metrics")
   ),
-
-  "dags/CRM_integration/AccountReference/dqa/compare_counts.sql": f(
-`-- DQA type 3: source vs target query comparison (scaffold)
--- Config points to two query files:
---   - source_count_by_day.sql
---   - target_count_by_day.sql
--- This file exists to make the task obvious in the UI.
-SELECT 1 AS scaffold_only;
-`
+  [p("ad_platform", "campaign_metrics_hourly", "load", "load_campaign_metrics.sql")]: f(
+    loadQuery("campaign_metrics", "campaign_metrics")
   ),
-
-  // ── CRM_integration / Game ──────────────────────────────────────
-  "dags/CRM_integration/Game/ddl/create_table_stage.sql": f(
-`CREATE TABLE IF NOT EXISTS db_stage.GamingIntegration_gc_Game (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    gameID STRING,
-    gameTypeID STRING,
-    gameSubTypeID STRING,
-    name STRING,
-    gamingGroupingKey STRING,
-    hasJackpot STRING,
-    freeRoundsSupported STRING,
-    aspectRatio STRING,
-    width STRING,
-    height STRING,
-    scaleUp STRING,
-    scaleDown STRING,
-    stretching STRING,
-    html5 STRING,
-    rowCreated STRING,
-    rowModified STRING,
-    isDeleted STRING,
-    platformID STRING,
-    title STRING,
-    subtitle STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash)
-PROPERTIES(
-    "replication_num" = "2" ,
-    "enable_persistent_index" = "true"
-);`
-  ),
-
-  "dags/CRM_integration/Game/ddl/create_table_data_model.sql": f(
-`CREATE TABLE IF NOT EXISTS db_data_model.GamingIntegration_gc_Game (
-    gameID INT,
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    gameTypeID INT,
-    gameSubTypeID INT,
-    name STRING,
-    gamingGroupingKey INT,
-    hasJackpot BOOLEAN,
-    freeRoundsSupported BOOLEAN,
-    aspectRatio STRING,
-    width INT,
-    height INT,
-    scaleUp BOOLEAN,
-    scaleDown BOOLEAN,
-    stretching BOOLEAN,
-    html5 BOOLEAN,
-    rowCreated DATETIME,
-    rowModified DATETIME,
-    isDeleted INT,
-    platformID INT,
-    title STRING,
-    subtitle STRING
-)
-PRIMARY KEY (gameID)
-DISTRIBUTED BY HASH (gameID)
-PROPERTIES(
-    "replication_num" = "2",
-    "enable_persistent_index" = "true"
-);`
-  ),
-
-  "dags/CRM_integration/Game/ddl/bi_custom_ddl.sql": f(
-`-- BI custom DDL (scaffold example)
-ALTER TABLE db_data_model.GamingIntegration_gc_Game
-ADD COLUMN IF NOT EXISTS bi_segment STRING
-;`
-  ),
-
-  "dags/CRM_integration/Game/extract/data_model_task.sql": f(
-`SELECT *
-FROM gc.Game
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
-;`
-  ),
-
-  "dags/CRM_integration/Game/transform/data_model_task.sql": f(
-`TRUNCATE TABLE db_data_model.GamingIntegration_gc_Game
-;
-
-INSERT INTO
-db_data_model.GamingIntegration_gc_Game
-SELECT
-\tstage.gameID,
-\tstage.saga_hash,
-\tstage.saga_real_run_ts,
-\tstage.gameTypeID,
-\tstage.gameSubTypeID,
-\tstage.name,
-\tstage.gamingGroupingKey,
-\tstage.hasJackpot,
-\tstage.freeRoundsSupported,
-\tstage.aspectRatio,
-\tCAST(CAST(stage.width AS FLOAT) AS INT),
-\tCAST(CAST(stage.height AS FLOAT) AS INT),
-\tstage.scaleUp,
-\tstage.scaleDown,
-\tstage.stretching,
-\tstage.html5,
-\tstage.rowCreated,
-\tstage.rowModified,
-\tstage.isDeleted,
-\tstage.platformID,
-\tstage.title,
-\tstage.subtitle
-FROM db_stage.GamingIntegration_gc_Game AS stage
-WHERE
-    stage.saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
-ORDER BY
-\tsaga_real_run_ts ASC
-;`
-  ),
-
-  "dags/CRM_integration/Game/transform/cleanup_logs.sql": f(
-`-- Cleanup logs (NOT DQA)
-DELETE FROM db_stage.GamingIntegration_gc_Game
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
-;`
-  ),
-
-  "dags/CRM_integration/Game/dqa/rule_check_game.sql": f(
-`-- DQA type 2: rule check (single query)
--- Example: make sure name is not empty.
-SELECT
-  COUNT(*) AS invalid_rows
-FROM db_data_model.GamingIntegration_gc_Game
-WHERE name IS NULL OR TRIM(name) = ''
-;`
-  ),
-
-  // ── CRM_integration / GameTransaction ───────────────────────────
-  "dags/CRM_integration/GameTransaction/ddl/create_table_stage.sql": f(
-`CREATE TABLE IF NOT EXISTS db_stage.GamingIntegration_tr_GameTransaction (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    gameTransactionID STRING,
-    transactionTypeID STRING,
-    gameSessionID STRING,
-    providerRoundUID STRING,
-    providerTransactionUID STRING,
-    amount STRING,
-    afterBalance STRING,
-    jackpotContribution STRING,
-    transactionDate STRING,
-    rowCreated STRING,
-    rowModified STRING,
-    roundStatusTypeID STRING,
-    roundID STRING,
-    liveCasinoTableID STRING,
-    cancelTransactionID STRING,
-    relatedTransactionID STRING,
-    jackpotWin STRING,
-    jackpotWinAmount STRING,
-    bonusBalance STRING,
-    lockedCashBalance STRING,
-    lockedCashWinningsBalance STRING,
-    riskBonusAmount STRING,
-    riskLockedCashAmount STRING,
-    riskLockedCashWinningsAmount STRING,
-    winBonusAmount STRING,
-    winLockedCashAmount STRING,
-    winLockedCashWinningsAmount STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash)
-PROPERTIES(
-    "replication_num" = "2" ,
-    "enable_persistent_index" = "true"
-)
-;`
-  ),
-
-  "dags/CRM_integration/GameTransaction/ddl/create_table_data_model.sql": f(
-`CREATE TABLE IF NOT EXISTS db_data_model.GamingIntegration_tr_GameTransaction (
-    gameTransactionId BIGINT,
-    saga_hash BIGINT,
-    saga_real_run DATETIME,
-    transactionTypeId INT,
-    gameSessionId BIGINT,
-    providerRoundUid STRING,
-    providerTransactionUid STRING,
-    amount INT,
-    afterBalance INT,
-    jackpotContribution INT,
-    transactionDate DATETIME,
-    rowCreated DATETIME,
-    rowModified DATETIME,
-    roundStatusTypeId INT,
-    roundId BIGINT,
-    liveCasinoTableId BIGINT,
-    cancelTransactionId BIGINT,
-    relatedTransactionId BIGINT,
-    jackpotWin BOOLEAN,
-    jackpotWinAmount INT,
-    bonusBalance float,
-    lockedCashBalance float,
-    lockedCashWinningsBalance float,
-    riskBonusAmount float,
-    riskLockedCashAmount float,
-    riskLockedCashWinningsAmount float,
-    winBonusAmount float,
-    winLockedCashAmount float,
-    winLockedCashWinningsAmount float
-)
-PRIMARY KEY (gameTransactionID)
-DISTRIBUTED BY HASH (gameTransactionID)
-PROPERTIES(
-    "replication_num" = "2",
-    "enable_persistent_index" = "true"
-)
-;`
-  ),
-
-  "dags/CRM_integration/GameTransaction/ddl/bi_custom_ddl.sql": f(
-`-- BI custom DDL (scaffold example)
-ALTER TABLE db_data_model.GamingIntegration_tr_GameTransaction
-ADD COLUMN IF NOT EXISTS bi_flag STRING
-;`
-  ),
-
-  "dags/CRM_integration/GameTransaction/extract/data_model_task.sql": f(
-`SELECT *
-FROM tr.GameTransaction
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
-;`
-  ),
-
-  "dags/CRM_integration/GameTransaction/transform/data_model_task.sql": f(
-`INSERT INTO db_data_model.GamingIntegration_tr_GameTransaction
-SELECT
-\tstage.gameTransactionId,
-    stage.saga_hash,
-\tstage.saga_real_run_ts,
-\tstage.transactionTypeId,
-\tstage.gameSessionId,
-\tstage.providerRoundUid,
-\tstage.providerTransactionUid,
-\tstage.amount,
-\tstage.afterBalance,
-\tCAST(CAST(stage.jackpotContribution AS FLOAT) AS INT),
-\tstage.transactionDate,
-\tstage.rowCreated,
-\tstage.rowModified,
-\tCAST(CAST(stage.roundStatusTypeId AS FLOAT) AS INT),
-\tstage.roundId,
-\tstage.liveCasinoTableId,
-\tstage.cancelTransactionId,
-\tstage.relatedTransactionId,
-\tstage.jackpotWin,
-\tstage.jackpotWinAmount,
-\tstage.bonusBalance,
-\tstage.lockedCashBalance,
-\tstage.lockedCashWinningsBalance,
-\tstage.riskBonusAmount,
-\tstage.riskLockedCashAmount,
-\tstage.riskLockedCashWinningsAmount,
-\tstage.winBonusAmount,
-\tstage.winLockedCashAmount,
-\tstage.winLockedCashWinningsAmount
-FROM db_stage.GamingIntegration_tr_GameTransaction AS stage
-WHERE
-    stage.saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
-ORDER BY
-\tsaga_real_run_ts ASC
-;`
-  ),
-
-  "dags/CRM_integration/GameTransaction/transform/cleanup_logs.sql": f(
-`-- Cleanup logs (NOT DQA)
-DELETE FROM db_stage.GamingIntegration_tr_GameTransaction
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 14 DAY)
-;`
-  ),
-
-  "dags/CRM_integration/GameTransaction/dqa/source_count_by_day.sql": f(
-`-- DQA type 3 (source query): count per day in source
-SELECT
-  CAST(rowModified AS DATE) AS day,
-  COUNT(*) AS cnt
-FROM tr.GameTransaction
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 7 DAY)
-GROUP BY 1
-ORDER BY 1;
-`
-  ),
-
-  "dags/CRM_integration/GameTransaction/dqa/target_count_by_day.sql": f(
-`-- DQA type 3 (target query): count per day in target
-SELECT
-  CAST(saga_logical_run_ts AS DATE) AS day,
-  COUNT(*) AS cnt
-FROM db_stage.GamingIntegration_tr_GameTransaction
-WHERE saga_logical_run_ts >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 7 DAY)
-GROUP BY 1
-ORDER BY 1;
-`
-  ),
-
-  "dags/CRM_integration/GameTransaction/dqa/compare_counts.sql": f(
-`-- DQA type 3: source vs target query comparison (scaffold)
--- Config points to:
---   - source_count_by_day.sql
---   - target_count_by_day.sql
-SELECT 1 AS scaffold_only;
-`
-  ),
-
-  // ── BEATS_integration / AccountLogType ──────────────────────────
-  "dags/BEATS_integration/AccountLogType/ddl/create_table_stage.sql": f(
-`CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountLogType (
-\tsaga_hash BIGINT,
-\tsaga_real_run_ts DATETIME,
-\tsaga_logical_run_ts DATETIME,
-\taccountLogTypeID STRING,
-\ttypeName STRING,
-\trowCreated STRING,
-\trowModified STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash)
-PROPERTIES(
-    "replication_num" = "2" ,
-    "enable_persistent_index" = "true"
-)
-;`
-  ),
-
-  "dags/BEATS_integration/AccountLogType/ddl/create_table_data_model.sql": f(
-`CREATE TABLE IF NOT EXISTS db_data_model.Accounts_dbo_AccountLogType (
-\taccountLogTypeId SMALLINT,
-\tsaga_hash BIGINT,
-\tsaga_real_run_ts DATETIME,
-\ttypeName VARCHAR(50),
-\trowCreated DATETIME,
-\trowModified DATETIME
-)
-PRIMARY KEY (accountLogTypeId)
-DISTRIBUTED BY HASH (accountLogTypeId)
-PROPERTIES(
-    "replication_num" = "2",
-    "enable_persistent_index" = "true"
-)
-;`
-  ),
-
-  "dags/BEATS_integration/AccountLogType/ddl/bi_custom_ddl.sql": f(
-`-- BI custom DDL (scaffold example)
-ALTER TABLE db_data_model.Accounts_dbo_AccountLogType
-ADD COLUMN IF NOT EXISTS bi_description STRING
-;`
-  ),
-
-  "dags/BEATS_integration/AccountLogType/extract/data_model_task.sql": f(
-`SELECT *
-FROM dbo.AccountLogType
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
-;`
-  ),
-
-  "dags/BEATS_integration/AccountLogType/transform/data_model_task.sql": f(
-`TRUNCATE TABLE db_data_model.Accounts_dbo_AccountLogType
-;
-
-INSERT INTO db_data_model.Accounts_dbo_AccountLogType
-SELECT
-    accountLogTypeID,
-\tsaga_hash,
-\tsaga_real_run_ts,
-\ttypeName,
-\trowCreated,
-\trowModified
-FROM db_stage.Accounts_dbo_AccountLogType
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
-ORDER BY saga_real_run_ts ASC
-;`
-  ),
-
-  "dags/BEATS_integration/AccountLogType/transform/cleanup_logs.sql": f(
-`-- Cleanup logs (NOT DQA)
-DELETE FROM db_stage.Accounts_dbo_AccountLogType
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
-;`
-  ),
-
-  "dags/BEATS_integration/AccountLogType/dqa/rule_check_acctlog.sql": f(
-`-- DQA type 2: rule check (single query)
--- Example: typeName should be present.
-SELECT
-  COUNT(*) AS invalid_rows
-FROM db_data_model.Accounts_dbo_AccountLogType
-WHERE typeName IS NULL OR TRIM(typeName) = ''
-;`
-  ),
-
-  // ── data_sources / gaming_integration / DailyTransactionAmount ──
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/create_table_stage.sql": f(
-`CREATE TABLE IF NOT EXISTS db_stage.gamingintegration_tr_dailytransactionamount (
-\t\`saga_hash\` BIGINT,
-\t\`saga_real_run_ts\` DATETIME,
-\t\`saga_logical_run_ts\` DATETIME,
-\t\`dailyTransactionAmountID\` STRING,
-\t\`customerID\` STRING,
-\t\`balance\` STRING,
-\t\`balanceDate\` STRING,
-\t\`rowCreated\` STRING,
-\t\`rowModified\` STRING,
-\t\`gameTransactionID\` STRING
-)
-PRIMARY KEY (\`saga_hash\`)
-DISTRIBUTED BY HASH (\`saga_hash\`)
-PROPERTIES(
-    "replication_num" = "2" ,
-    "enable_persistent_index" = "true"
-);`
-  ),
-
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/create_table_data_model.sql": f(
-`CREATE TABLE IF NOT EXISTS db_data_model.gamingintegration_tr_dailytransactionamount (
-\t\`dailyTransactionAmountId\` BIGINT,
-\t\`saga_hash\` BIGINT,
-\t\`saga_real_run_ts\` DATETIME,
-\t\`customerId\` VARCHAR(100),
-\t\`balance\` FLOAT,
-\t\`balanceDate\` DATETIME,
-\t\`rowCreated\` DATETIME,
-\t\`rowModified\` DATETIME,
-\t\`gameTransactionId\` BIGINT
-)
-PRIMARY KEY (\`dailyTransactionAmountId\`)
-DISTRIBUTED BY HASH (\`dailyTransactionAmountId\`)
-PROPERTIES(
-    "replication_num" = "2",
-    "enable_persistent_index" = "true"
-);`
-  ),
-
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/bi_custom_ddl.sql": f(
-`-- BI custom DDL (scaffold example)
-ALTER TABLE db_data_model.gamingintegration_tr_dailytransactionamount
-ADD COLUMN IF NOT EXISTS bi_bucket STRING
-;`
-  ),
-
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/transform/stage_to_data_model.sql": f(
-`INSERT INTO db_data_model.gamingintegration_tr_dailytransactionamount
-WITH data_rownum AS (
-    SELECT
-        *,
-        ROW_NUMBER() OVER (PARTITION BY \`dailyTransactionAmountID\`\t\t\t\t\t\t\t\t
-                               ORDER BY saga_real_run_ts DESC)
-                                     AS rn
-    FROM db_stage.gamingintegration_tr_dailytransactionamount
-    WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
-)
-SELECT
-    \`dailyTransactionAmountID\`,
-\t\`saga_hash\`,
-\t\`saga_real_run_ts\`,
-\tupper(trim(\`customerID\`)),
-\t\`balance\`,
-\t\`balanceDate\`,
-\t\`rowCreated\`,
-\t\`rowModified\`,
-\t\`gameTransactionID\`
-FROM data_rownum
-WHERE rn = 1;`
-  ),
-
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/extract/select_from_source.sql": f(
-`SELECT *
-FROM tr.DailyTransactionAmount
-WHERE (rowCreated <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
-  AND rowCreated > DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME))) OR
-  (rowModified <= DATEADD(HOUR, 1, CAST('<saga_logical_run_ts>' AS DATETIME))
-  AND rowModified > DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME)));`
-  ),
-
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/transform/cleanup_stage_old_records.sql": f(
-`-- Cleanup stage old records (NOT DQA)
-DELETE FROM db_stage.gamingintegration_tr_dailytransactionamount
-WHERE balanceDate < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 2 DAY)
-;`
-  ),
-
-  "dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/dqa/rule_check_dailytx.sql": f(
-`-- DQA type 2: rule check (single query)
--- Example: balance should not be negative.
-SELECT
-  COUNT(*) AS invalid_rows
-FROM db_data_model.gamingintegration_tr_dailytransactionamount
-WHERE balance < 0
-;`
+  [p("ad_platform", "campaign_metrics_hourly", "dqa", "campaign_metrics_dates_sanity.sql")]: f(
+    dqaRuleCheck("campaign_metrics")
   ),
 
   // ── schema_and_user_creation ────────────────────────────────────
   "dags/schema_and_user_creation/load/schemas.sql": f(
-`CREATE DATABASE IF NOT EXISTS db_business_model_DEVELOP
-;
-CREATE DATABASE IF NOT EXISTS db_data_model_DEVELOP
-;
-CREATE DATABASE IF NOT EXISTS db_stage_DEVELOP
-;
-CREATE DATABASE IF NOT EXISTS db_business_model
-;
-CREATE DATABASE IF NOT EXISTS db_data_model
-;
-CREATE DATABASE IF NOT EXISTS db_stage
-;`
+    `CREATE DATABASE IF NOT EXISTS db_business_model_DEVELOP\n;\n` +
+      `CREATE DATABASE IF NOT EXISTS db_data_model_DEVELOP\n;\n` +
+      `CREATE DATABASE IF NOT EXISTS db_stage_DEVELOP\n;\n` +
+      `CREATE DATABASE IF NOT EXISTS db_business_model\n;\n` +
+      `CREATE DATABASE IF NOT EXISTS db_data_model\n;\n` +
+      `CREATE DATABASE IF NOT EXISTS db_stage\n;`
   ),
 };
 
@@ -666,69 +312,69 @@ export const initialFiles: Record<string, SqlFile> = anonymizeFiles(RAW_INITIAL_
 
 const RAW_DAG_CONFIGS: DagConfig[] = [
   {
-    dagName: "dag_CRM_integration_dbo_AccountReference",
-    integrationName: "CRM_integration",
-    schedule: "7 0,3,6,9,12,15,18,21 * * *",
-    tags: ["CRM_integration", "snapshot"],
+    dagName: "dag_ecom_app_orders_daily",
+    integrationName: "ecom_app",
+    schedule: "0 */3 * * *",
+    tags: ["ecom_app", "orders", "snapshot"],
     dagType: "snapshot",
-    owner: "javier",
+    owner: "owner_retail_1",
     startDate: "2024-01-15",
     timezone: "US/Eastern",
-    team: "data-engineering",
-    incidentsChannel: "#incidents-data",
-    alertsChannel: "#alerts-data",
+    team: "team_retail",
+    incidentsChannel: "#incidents-retail",
+    alertsChannel: "#alerts-retail",
   },
   {
-    dagName: "dag_CRM_integration_gc_Game",
-    integrationName: "CRM_integration",
-    schedule: "5 0,3,6,9,12,15,18,21 * * *",
-    tags: ["CRM_integration", "snapshot"],
+    dagName: "dag_ecom_app_customers_snapshot",
+    integrationName: "ecom_app",
+    schedule: "5 */3 * * *",
+    tags: ["ecom_app", "customers", "snapshot"],
     dagType: "snapshot",
-    owner: "javier",
+    owner: "owner_retail_2",
     startDate: "2024-01-15",
     timezone: "US/Eastern",
-    team: "data-engineering",
-    incidentsChannel: "#incidents-data",
-    alertsChannel: "#alerts-data",
+    team: "team_retail",
+    incidentsChannel: "#incidents-retail",
+    alertsChannel: "#alerts-retail",
   },
   {
-    dagName: "dag_CRM_integration_tr_GameTransaction",
-    integrationName: "CRM_integration",
+    dagName: "dag_ecom_app_inventory_hourly",
+    integrationName: "ecom_app",
     schedule: "0 * * * *",
-    tags: ["CRM_integration", "incremental"],
+    tags: ["ecom_app", "inventory", "incremental"],
     dagType: "incremental",
-    owner: "maria",
+    owner: "owner_retail_3",
     startDate: "2024-02-01",
     timezone: "US/Eastern",
-    team: "data-engineering",
-    incidentsChannel: "#incidents-crm",
-    alertsChannel: "#alerts-crm",
+    team: "team_retail",
+    incidentsChannel: "#incidents-retail",
+    alertsChannel: "#alerts-retail",
   },
   {
-    dagName: "dag_BEATS_integration_dbo_AccountLogType",
-    integrationName: "BEATS_integration",
+    dagName: "dag_store_pos_store_sales_daily",
+    integrationName: "store_pos",
     schedule: "0 6 * * *",
-    tags: ["BEATS_integration", "snapshot"],
+    tags: ["store_pos", "sales", "snapshot"],
     dagType: "snapshot",
-    owner: "carlos",
+    owner: "owner_ops_1",
     startDate: "2024-03-10",
     timezone: "UTC",
-    team: "platform",
-    incidentsChannel: "#incidents-beats",
-    alertsChannel: "#alerts-beats",
+    team: "team_ops",
+    incidentsChannel: "#incidents-ops",
+    alertsChannel: "#alerts-ops",
   },
   {
-    dagName: "dag_data_sources_tr_DailyTransactionAmount",
-    integrationName: "data_sources",
-    schedule: "0 * * * *",
-    tags: ["data_sources", "incremental"],
+    dagName: "dag_ad_platform_campaign_metrics_hourly",
+    integrationName: "ad_platform",
+    schedule: "15 * * * *",
+    tags: ["ad_platform", "campaigns", "incremental"],
     dagType: "incremental",
-    owner: "lucia",
+    owner: "owner_marketing_1",
     startDate: "2024-04-01",
     timezone: "Europe/Madrid",
-    team: "analytics",
-    incidentsChannel: "#incidents-datasources",
-    alertsChannel: "#alerts-datasources",
+    team: "team_marketing",
+    incidentsChannel: "#incidents-marketing",
+    alertsChannel: "#alerts-marketing",
   },
 ];
 
