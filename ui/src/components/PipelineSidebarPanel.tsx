@@ -8,11 +8,13 @@ import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
 import { describeCron } from "@/lib/cron-utils";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
 import { isTransparentSystemDdlTask } from "@/lib/task-type-utils";
+import { getTaskFilePaths, isDqaCompareTask } from "@/lib/task-files";
 import { useSafetyStore } from "@/lib/safety-store";
 import { useToastStore } from "@/lib/toast-store";
 import { StatusBadge } from "./StatusBadge";
 import { DagConfigEditor } from "./pipeline/DagConfigEditor";
 import { PipelineTaskCard } from "./pipeline/PipelineTaskCard";
+import { DqaSplitEditorSlideOut } from "./pipeline/DqaSplitEditorSlideOut";
 
 interface PipelineSidebarPanelProps {
   dagName: string;
@@ -36,6 +38,7 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const selectFile = useEditorStore((s) => s.selectFile);
   const [showDagConfig, setShowDagConfig] = useState(false);
+  const [dqaSplitTaskId, setDqaSplitTaskId] = useState<string | null>(null);
   const safety = useSafetyStore((s) => s.config);
   const addToast = useToastStore((s) => s.addToast);
 
@@ -45,6 +48,9 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
     () => getNonDdlTasksForPipeline(tasks, dagName),
     [tasks, dagName]
   );
+  const dqaSplitTask = dqaSplitTaskId
+    ? pipelineTasks.find((t) => t.id === dqaSplitTaskId) ?? null
+    : null;
   const allTags = useMemo(
     () => Array.from(new Set(dagConfigs.flatMap((d) => d.tags))).sort(),
     [dagConfigs]
@@ -58,9 +64,13 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
 
   const cycleStatus = () => {
     const next = getNextStatus(pipelineStatus);
-    const targetPaths = tasks
-      .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
-      .map((t) => t.sqlFilePath);
+    const targetPaths = Array.from(
+      new Set(
+        tasks
+          .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
+          .flatMap((t) => getTaskFilePaths(t))
+      )
+    );
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);
   };
@@ -274,7 +284,13 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
                       task={task}
                       index={index}
                       isLast={index === pipelineTasks.length - 1}
-                      onClick={() => selectFile(task.sqlFilePath)}
+                      onClick={() => {
+                        if (isDqaCompareTask(task)) {
+                          setDqaSplitTaskId(task.id);
+                        } else {
+                          selectFile(task.sqlFilePath);
+                        }
+                      }}
                     />
                   ))}
                   {provided.placeholder}
@@ -284,6 +300,13 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
           </DragDropContext>
         </div>
       </div>
+
+      {dqaSplitTask && (
+        <DqaSplitEditorSlideOut
+          task={dqaSplitTask}
+          onClose={() => setDqaSplitTaskId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -11,7 +11,9 @@ import { getPipelineStatus } from "@/lib/pipeline-status";
 import { PipelineTaskCard } from "./PipelineTaskCard";
 import { DagConfigEditor } from "./DagConfigEditor";
 import { SqlEditorSlideOut } from "./SqlEditorSlideOut";
+import { DqaSplitEditorSlideOut } from "./DqaSplitEditorSlideOut";
 import { StatusBadge } from "@/components/StatusBadge";
+import { isDqaCompareTask } from "@/lib/task-files";
 
 const typeBadge: Record<string, string> = {
   snapshot: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -36,6 +38,7 @@ export function PipelineDetail() {
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
 
   const [slideOutFile, setSlideOutFile] = useState<string | null>(null);
+  const [dqaSplitTaskId, setDqaSplitTaskId] = useState<string | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState("");
 
@@ -46,6 +49,9 @@ export function PipelineDetail() {
   const pipelineTasks = selectedPipeline
     ? getNonDdlTasksForPipeline(tasks, selectedPipeline)
     : [];
+  const dqaSplitTask = dqaSplitTaskId
+    ? pipelineTasks.find((t) => t.id === dqaSplitTaskId) ?? null
+    : null;
 
   const allTags = useMemo(
     () => Array.from(new Set(dagConfigs.flatMap((d) => d.tags))).sort(),
@@ -187,7 +193,15 @@ export function PipelineDetail() {
                       task={task}
                       index={index}
                       isLast={index === pipelineTasks.length - 1}
-                      onClick={() => setSlideOutFile(task.sqlFilePath)}
+                      onClick={() => {
+                        if (isDqaCompareTask(task)) {
+                          setSlideOutFile(null);
+                          setDqaSplitTaskId(task.id);
+                        } else {
+                          setDqaSplitTaskId(null);
+                          setSlideOutFile(task.sqlFilePath);
+                        }
+                      }}
                     />
                   ))}
                   {provided.placeholder}
@@ -255,6 +269,12 @@ export function PipelineDetail() {
       </div>
 
       {/* SQL Editor Slide-out */}
+      {dqaSplitTask && (
+        <DqaSplitEditorSlideOut
+          task={dqaSplitTask}
+          onClose={() => setDqaSplitTaskId(null)}
+        />
+      )}
       {slideOutFile && (
         <SqlEditorSlideOut
           filePath={slideOutFile}

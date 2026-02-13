@@ -8,6 +8,7 @@ import { useWorkspaceStore } from "@/lib/workspace-store";
 import { useEditorStore } from "@/lib/store";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
 import { isTransparentSystemDdlTask } from "@/lib/task-type-utils";
+import { getTaskFilePaths } from "@/lib/task-files";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export function PipelineSimpleView() {
@@ -33,9 +34,13 @@ export function PipelineSimpleView() {
   const cycleStatus = (dagName: string) => {
     const current = getPipelineStatus(files, tasks, dagName);
     const next = getNextStatus(current);
-    const targetPaths = tasks
-      .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
-      .map((t) => t.sqlFilePath);
+    const targetPaths = Array.from(
+      new Set(
+        tasks
+          .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
+          .flatMap((t) => getTaskFilePaths(t))
+      )
+    );
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);
   };

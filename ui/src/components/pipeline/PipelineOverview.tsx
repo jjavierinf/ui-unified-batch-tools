@@ -6,6 +6,7 @@ import { useEditorStore } from "@/lib/store";
 import { describeCron, nextRunMinutes, formatNextRun } from "@/lib/cron-utils";
 import { isTransparentSystemDdlTask } from "@/lib/task-type-utils";
 import { getNextStatus, getPipelineStatus, STATUS_MEANING } from "@/lib/pipeline-status";
+import { getTaskFilePaths } from "@/lib/task-files";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { DagConfig } from "@/lib/types";
 
@@ -59,9 +60,13 @@ export function PipelineOverview() {
   const cycleStatus = (dagName: string) => {
     const current = getPipelineStatus(files, tasks, dagName);
     const next = getNextStatus(current);
-    const targetPaths = tasks
-      .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
-      .map((t) => t.sqlFilePath);
+    const targetPaths = Array.from(
+      new Set(
+        tasks
+          .filter((t) => t.dagName === dagName && !isTransparentSystemDdlTask(t.name, t.sqlFilePath))
+          .flatMap((t) => getTaskFilePaths(t))
+      )
+    );
     if (targetPaths.length === 0) return;
     setFilesStatus(targetPaths, next);
   };

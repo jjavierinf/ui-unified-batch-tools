@@ -5,6 +5,7 @@ import { useEditorStore } from "@/lib/store";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { buildTree } from "@/lib/file-utils";
 import { isTransparentSystemDdlPath } from "@/lib/task-type-utils";
+import { taskMatchesFile } from "@/lib/task-files";
 import { FileTree } from "./FileTree";
 import { PipelineSidebarPanel } from "./PipelineSidebarPanel";
 
@@ -42,7 +43,7 @@ export function Sidebar() {
 
   const pipelineDagName = useMemo(() => {
     if (selectedFile) {
-      const task = tasks.find((t) => t.sqlFilePath === selectedFile);
+      const task = tasks.find((t) => taskMatchesFile(t, selectedFile));
       if (task) {
         const config = dagConfigs.find((d) => d.dagName === task.dagName);
         if (config) return config.dagName;

@@ -44,6 +44,15 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
   const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
   const status = useEditorStore((s) => s.files[task.sqlFilePath]?.status ?? "draft");
   const fileName = task.sqlFilePath.split("/").pop() ?? task.sqlFilePath;
+  const fileLabel = (() => {
+    const dqa = task.taskConfig?.dqa;
+    if (task.stage !== "dqa") return fileName;
+    if (dqa?.queryType !== "source_vs_target_query_comparison") return fileName;
+    const source = dqa.sourceQueryFile ?? fileName;
+    const target = dqa.targetQueryFile;
+    if (!target) return fileName;
+    return `${source} + ${target}`;
+  })();
   const [showConfig, setShowConfig] = useState(false);
   const summaryLines = (() => {
     const cfg = task.taskConfig;
@@ -207,7 +216,7 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
                   )}
                 </div>
                 <p className="text-xs text-text-tertiary mt-1 truncate pl-0.5">
-                  {fileName}
+                  {fileLabel}
                 </p>
                 {summaryLines.length > 0 && (
                   <div className="mt-1 pl-0.5 space-y-0.5">
