@@ -7,7 +7,6 @@ import { UnifiedHeader } from "./UnifiedHeader";
 import { CodeView } from "./CodeView";
 import { PipelineView } from "./PipelineView";
 import { ApprovalsView } from "./ApprovalsView";
-import { WhatNewGuide } from "./WhatNewGuide";
 import { SafetyGuardrailsView } from "./SafetyGuardrailsView";
 import { DashboardView } from "./DashboardView";
 import { ChangesSidebar } from "./ChangesSidebar";
@@ -34,7 +33,6 @@ export function WorkspaceShell() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <UnifiedHeader />
-      <WhatNewGuide />
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 min-w-0 flex flex-col">
           {viewMode === "home" ? (

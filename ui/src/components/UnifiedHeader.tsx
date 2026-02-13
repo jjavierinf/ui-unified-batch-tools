@@ -4,7 +4,6 @@ import React from "react";
 import { useEditorStore } from "@/lib/store";
 import { useWorkspaceStore, ViewMode } from "@/lib/workspace-store";
 import { useAuthStore } from "@/lib/auth-store";
-import { useWhatsNewStore } from "@/lib/whats-new-store";
 import { useToastStore } from "@/lib/toast-store";
 import { EnvironmentToggle } from "./EnvironmentToggle";
 import { ThemeToggle } from "./ThemeToggle";
@@ -120,12 +119,10 @@ export function UnifiedHeader() {
   const pushToDev = useEditorStore((s) => s.pushToDev);
   const pushToProd = useEditorStore((s) => s.pushToProd);
   const currentUser = useAuthStore((s) => s.currentUser);
-  const openWhatsNew = useWhatsNewStore((s) => s.open);
   const addToast = useToastStore((s) => s.addToast);
   const changesPanelOpen = useEditorStore((s) => s.changesPanelOpen);
   const toggleChangesPanel = useEditorStore((s) => s.toggleChangesPanel);
   const [showProdConfirm, setShowProdConfirm] = React.useState(false);
-  const [showInfoMenu, setShowInfoMenu] = React.useState(false);
 
   const isLeader = currentUser?.role === "leader";
   const tabs = isLeader ? [...baseTabs, safetyTab, reviewsTab] : baseTabs;
@@ -295,50 +292,18 @@ export function UnifiedHeader() {
                 <path d="M18 21l-6-6-6 6" />
               </svg>
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setShowInfoMenu((v) => !v)}
-                className="w-8 h-8 flex items-center justify-center rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
-                title="Info & resources"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-              </button>
-              {showInfoMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowInfoMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-sidebar-border bg-surface shadow-lg py-1">
-                    <button
-                      onClick={() => { openWhatsNew(); setShowInfoMenu(false); }}
-                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-surface-hover cursor-pointer flex items-center gap-2"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      What&apos;s new
-                    </button>
-                    <a
-                      href="/changelog/current"
-                      target="_blank"
-                      rel="noreferrer"
-                      data-tour="whats-new-link-pdf"
-                      onClick={() => setShowInfoMenu(false)}
-                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-surface-hover cursor-pointer flex items-center gap-2"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                      </svg>
-                      Current PDF
-                    </a>
-                  </div>
-                </>
-              )}
-            </div>
+            <a
+              href="/changelog/current"
+              target="_blank"
+              rel="noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+              title="Changelog PDF"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+            </a>
             <ThemeToggle />
             <UserMenu />
           </div>
