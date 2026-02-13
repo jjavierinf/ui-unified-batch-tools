@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import type { PipelineTask, PipelineStage } from "@/lib/types";
 import { usePipelineStore } from "@/lib/pipeline-store";
+import { useEditorStore } from "@/lib/store";
+import { StatusBadge } from "@/components/StatusBadge";
 import { TaskConfigFields } from "./TaskConfigFields";
 
 const stageBorderColors: Record<PipelineStage, string> = {
@@ -40,6 +42,7 @@ interface PipelineTaskCardProps {
 
 export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskCardProps) {
   const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
+  const status = useEditorStore((s) => s.files[task.sqlFilePath]?.status ?? "draft");
   const fileName = task.sqlFilePath.split("/").pop() ?? task.sqlFilePath;
   const [showConfig, setShowConfig] = useState(false);
   const summaryLines = (() => {
@@ -158,7 +161,7 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
                       : undefined
                   }
                 >
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-text-tertiary bg-surface-hover px-1.5 py-0.5 rounded">
                     #{index + 1}
                   </span>
@@ -171,6 +174,7 @@ export function PipelineTaskCard({ task, index, isLast, onClick }: PipelineTaskC
                     {stageLabels[task.stage]}
                   </span>
                   <div className="flex-1" />
+                  <StatusBadge status={status} />
                   {task.taskConfig && (
                     <button
                       type="button"

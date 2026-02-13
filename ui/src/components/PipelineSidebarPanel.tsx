@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { usePipelineStore } from "@/lib/pipeline-store";
 import { useEditorStore } from "@/lib/store";
 import { getNonDdlTasksForPipeline } from "@/lib/pipeline-mock-data";
@@ -11,7 +12,7 @@ import { useSafetyStore } from "@/lib/safety-store";
 import { useToastStore } from "@/lib/toast-store";
 import { StatusBadge } from "./StatusBadge";
 import { DagConfigEditor } from "./pipeline/DagConfigEditor";
-import { TaskConfigPanel } from "./pipeline/TaskConfigPanel";
+import { PipelineTaskCard } from "./pipeline/PipelineTaskCard";
 
 interface PipelineSidebarPanelProps {
   dagName: string;
@@ -26,12 +27,11 @@ const typeBadge: Record<string, string> = {
 export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
   const tasks = usePipelineStore((s) => s.tasks);
   const dagConfigs = usePipelineStore((s) => s.dagConfigs);
+  const reorderTask = usePipelineStore((s) => s.reorderTask);
   const updateDagSchedule = usePipelineStore((s) => s.updateDagSchedule);
   const addDagTag = usePipelineStore((s) => s.addDagTag);
   const removeDagTag = usePipelineStore((s) => s.removeDagTag);
   const updateDagField = usePipelineStore((s) => s.updateDagField);
-  const updateTaskConfig = usePipelineStore((s) => s.updateTaskConfig);
-  const selectedFile = useEditorStore((s) => s.selectedFile);
   const files = useEditorStore((s) => s.files);
   const setFilesStatus = useEditorStore((s) => s.setFilesStatus);
   const selectFile = useEditorStore((s) => s.selectFile);
@@ -85,7 +85,12 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
     addToast(`Simulate run OK (mock) · idle ${idlePct}% · est ${estRuntimeMs}ms`);
   };
 
-  const activeTask = pipelineTasks.find((t) => t.sqlFilePath === selectedFile);
+  const handleDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+    if (!destination) return;
+    if (source.index === destination.index) return;
+    reorderTask(dagName, source.index, destination.index);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -253,49 +258,30 @@ export function PipelineSidebarPanel({ dagName }: PipelineSidebarPanelProps) {
               Tasks ({pipelineTasks.length})
             </span>
           </div>
-          <div className="space-y-0.5 ml-1">
-            {pipelineTasks.map((task, index) => {
-              const isCurrent = task.sqlFilePath === selectedFile;
-              return (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId={`pro-task-list-${dagName}`}>
+              {(provided, snapshot) => (
                 <div
-                  key={task.id}
-                  onClick={() => selectFile(task.sqlFilePath)}
-                  className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
-                    isCurrent
-                      ? "bg-accent/10 text-accent font-medium"
-                      : "text-text-secondary hover:bg-surface-hover cursor-pointer"
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`min-h-[100px] rounded-lg transition-colors ${
+                    snapshot.isDraggingOver ? "bg-surface-hover" : ""
                   }`}
                 >
-                  <span className="text-[10px] text-text-tertiary w-3 text-right shrink-0">
-                    {index + 1}
-                  </span>
-                  <span className="truncate">{task.name}</span>
-                  {files[task.sqlFilePath] && (
-                    <span className="ml-auto">
-                      <StatusBadge status={files[task.sqlFilePath].status} />
-                    </span>
-                  )}
-                  {isCurrent && (
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="currentColor"
-                      className="shrink-0"
-                    >
-                      <circle cx="4" cy="4" r="3" />
-                    </svg>
-                  )}
+                  {pipelineTasks.map((task, index) => (
+                    <PipelineTaskCard
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      isLast={index === pipelineTasks.length - 1}
+                      onClick={() => selectFile(task.sqlFilePath)}
+                    />
+                  ))}
+                  {provided.placeholder}
                 </div>
-              );
-            })}
-          </div>
-
-          {activeTask?.taskConfig && (
-            <div className="mt-2 px-2 py-2 rounded-md border border-sidebar-border bg-background/50">
-              <TaskConfigPanel task={activeTask} onUpdateConfig={updateTaskConfig} />
-            </div>
-          )}
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
       </div>
     </div>
