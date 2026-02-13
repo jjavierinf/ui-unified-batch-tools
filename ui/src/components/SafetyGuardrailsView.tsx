@@ -37,7 +37,7 @@ function Field({
   );
 }
 
-export function SafetyEnforcesView() {
+export function SafetyGuardrailsView() {
   const config = useSafetyStore((s) => s.config);
   const update = useSafetyStore((s) => s.update);
   const reset = useSafetyStore((s) => s.resetToDefaults);
@@ -52,7 +52,7 @@ export function SafetyEnforcesView() {
           Safety guardrails
         </h2>
         <p className="text-sm text-text-secondary mt-2 max-w-2xl">
-          Guardrails de equipo para evitar queries pesadas o riesgosas. En este scaffold, el enforcement es mock/determinístico, pero el UX deja claro qué reglas se aplicarían.
+          Team guardrails to prevent heavy or risky queries. In this scaffold, enforcement is mock/deterministic, but the UX makes clear which rules would apply.
         </p>
         <div className="mt-3 flex items-center gap-2">
           <button
@@ -70,7 +70,7 @@ export function SafetyEnforcesView() {
       <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Field
           label="Max query runtime (SQL Explorer) [ms]"
-          hint="Bloquea Run query si el runtime estimado (mock) excede este valor."
+          hint="Blocks Run query if estimated runtime (mock) exceeds this value."
           value={config.maxRuntimeMsExplorer}
           min={100}
           step={100}
@@ -78,7 +78,7 @@ export function SafetyEnforcesView() {
         />
         <Field
           label="Max query runtime (SQL Pipes) [ms]"
-          hint="Bloquea Simulate run si el runtime estimado (mock) excede este valor."
+          hint="Blocks Simulate run if estimated runtime (mock) exceeds this value."
           value={config.maxRuntimeMsPipes}
           min={100}
           step={100}
@@ -86,7 +86,7 @@ export function SafetyEnforcesView() {
         />
         <Field
           label="Min idle resources (SQL Explorer) [%]"
-          hint="Bloquea Run query si el idle% actual (mock) es menor a este threshold."
+          hint="Blocks Run query if current idle% (mock) is below this threshold."
           value={config.minIdlePctExplorer}
           min={0}
           step={1}
@@ -94,7 +94,7 @@ export function SafetyEnforcesView() {
         />
         <Field
           label="Min idle resources (SQL Pipes) [%]"
-          hint="Bloquea Simulate run si el idle% actual (mock) es menor a este threshold."
+          hint="Blocks Simulate run if current idle% (mock) is below this threshold."
           value={config.minIdlePctPipes}
           min={0}
           step={1}
@@ -102,7 +102,7 @@ export function SafetyEnforcesView() {
         />
         <Field
           label="Default limit rows (SQL Explorer)"
-          hint="Sugiere LIMIT para queries SELECT sin LIMIT/TOP."
+          hint="Suggests LIMIT for SELECT queries without LIMIT/TOP."
           value={config.defaultLimitRowsExplorer}
           min={1}
           step={50}

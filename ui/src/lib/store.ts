@@ -12,6 +12,7 @@ interface EditorStore {
   darkMode: boolean;
   environment: Environment;
   diffCollapsed: boolean;
+  changesPanelOpen: boolean;
 
   selectFile: (path: string) => void;
   selectFolder: (path: string) => void;
@@ -25,6 +26,7 @@ interface EditorStore {
   toggleDiffPanel: () => void;
   setEnvironment: (env: Environment) => void;
   createFile: (path: string) => void;
+  toggleChangesPanel: () => void;
   setFilesStatus: (paths: string[], status: FileStatus) => void;
   seedFiles: (files: Array<{ path: string; content: string }>) => void;
   submitFile: (path: string) => void;
@@ -48,6 +50,7 @@ export const useEditorStore = create<EditorStore>()(
       darkMode: true,
       environment: "dev",
       diffCollapsed: false,
+      changesPanelOpen: false,
 
       selectFile: (path) =>
         set({ selectedFile: path, selectedFolder: null }),
@@ -121,6 +124,9 @@ export const useEditorStore = create<EditorStore>()(
 
       toggleDiffPanel: () =>
         set((state) => ({ diffCollapsed: !state.diffCollapsed })),
+
+      toggleChangesPanel: () =>
+        set((state) => ({ changesPanelOpen: !state.changesPanelOpen })),
 
       createFile: (path) =>
         set((state) => ({
@@ -346,6 +352,7 @@ export const useEditorStore = create<EditorStore>()(
           darkMode: true,
           environment: "dev",
           diffCollapsed: false,
+          changesPanelOpen: false,
         }),
     }),
     {
