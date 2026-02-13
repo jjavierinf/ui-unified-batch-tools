@@ -12,6 +12,8 @@ import {
 } from "@/lib/sql-explorer-mock";
 import { useSqlExplorerStore } from "@/lib/sql-explorer-store";
 import { useSafetyStore } from "@/lib/safety-store";
+import { Breadcrumb } from "./Breadcrumb";
+import { BottomConsole } from "./BottomConsole";
 
 function Icon({
   kind,
@@ -369,6 +371,24 @@ export function CodeView() {
     [connectionId, connections]
   );
 
+  const breadcrumbSegments = useMemo(() => {
+    const segs: Array<{ label: string; onClick?: () => void }> = [];
+    if (connection) {
+      segs.push({ label: connection.name, onClick: () => { setActiveDb(null); setActiveSchemaKey(null); setActiveTable(null); } });
+    }
+    if (activeDb) {
+      segs.push({ label: activeDb, onClick: () => { setActiveSchemaKey(null); setActiveTable(null); } });
+    }
+    if (activeSchemaKey) {
+      const schemaName = activeSchemaKey.split(".")[1] ?? activeSchemaKey;
+      segs.push({ label: schemaName, onClick: () => { setActiveTable(null); } });
+    }
+    if (activeTable) {
+      segs.push({ label: activeTable.name });
+    }
+    return segs;
+  }, [connection, activeDb, activeSchemaKey, activeTable]);
+
   const runQuery = () => {
     if (!connection) return;
 
@@ -501,6 +521,7 @@ export function CodeView() {
       </aside>
 
       <section className="flex-1 min-w-0 flex flex-col">
+        <Breadcrumb segments={breadcrumbSegments} />
         <div className="px-4 py-2 border-b border-sidebar-border bg-surface flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -580,65 +601,29 @@ export function CodeView() {
           })()}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-auto">
-          <div className="px-4 py-2 border-b border-sidebar-border text-[10px] text-text-tertiary flex items-center justify-between gap-3">
-            <span>{result.notice}</span>
-            {lastMetrics && (
-              <span className="text-text-tertiary">
-                idle {lastMetrics.idlePct}% (mock) · est {lastMetrics.estRuntimeMs}ms (mock)
-              </span>
-            )}
-          </div>
-          {policyBlock && (
-            <div className="m-4 rounded-lg border border-sidebar-border bg-surface p-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 text-badge-pending">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="M12 8v4" />
-                    <path d="M12 16h.01" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{policyBlock.title}</p>
-                  <p className="text-xs text-text-secondary mt-1">{policyBlock.detail}</p>
-                  <p className="text-xs text-text-tertiary mt-2">
-                    <span className="font-semibold text-text-secondary">What to do:</span>{" "}
-                    {policyBlock.whatToDo}
-                  </p>
-                </div>
+        {policyBlock && (
+          <div className="mx-4 my-3 rounded-lg border border-sidebar-border bg-surface p-4 shrink-0">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-badge-pending">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M12 8v4" />
+                  <path d="M12 16h.01" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{policyBlock.title}</p>
+                <p className="text-xs text-text-secondary mt-1">{policyBlock.detail}</p>
+                <p className="text-xs text-text-tertiary mt-2">
+                  <span className="font-semibold text-text-secondary">What to do:</span>{" "}
+                  {policyBlock.whatToDo}
+                </p>
               </div>
             </div>
-          )}
-          {result.columns.length === 0 ? (
-            <div className="p-4 text-xs text-text-tertiary">
-              {policyBlock ? "Query blocked by policy." : "Pick a schema/table on the left, then Run query to see results."}
-            </div>
-          ) : (
-            <table className="w-full text-xs">
-              <thead className="bg-surface sticky top-0">
-                <tr>
-                  {result.columns.map((c) => (
-                    <th key={c} className="text-left px-3 py-2 border-b border-sidebar-border font-medium text-text-secondary">
-                      {c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {result.rows.map((row, idx) => (
-                  <tr key={`row-${idx}`} className="border-b border-sidebar-border/60">
-                    {result.columns.map((c) => (
-                      <td key={`${idx}-${c}`} className="px-3 py-2 text-foreground align-top">
-                        {String(row[c] ?? "")}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+          </div>
+        )}
+
+        <BottomConsole columns={result.columns} rows={result.rows} notice={result.notice} />
       </section>
 
       {showManage && (

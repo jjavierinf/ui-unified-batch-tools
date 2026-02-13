@@ -252,7 +252,7 @@ export function PipelineOverview() {
                             cycle
                           </button>
                         </span>
-                        <div className="flex gap-1 overflow-hidden">
+                        <div className="flex gap-1 flex-wrap overflow-hidden">
                           {dag.tags
                             .filter((t) => t !== dag.integrationName)
                             .map((tag) => (

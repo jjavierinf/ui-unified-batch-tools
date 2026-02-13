@@ -14,6 +14,25 @@ import { PushProdConfirmModal } from "./PushProdConfirmModal";
 
 const baseTabs: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
   {
+    key: "home",
+    label: "Home",
+    icon: (
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
     key: "code",
     label: "SQL Explorer",
     icon: (
@@ -103,7 +122,10 @@ export function UnifiedHeader() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const openWhatsNew = useWhatsNewStore((s) => s.open);
   const addToast = useToastStore((s) => s.addToast);
+  const changesPanelOpen = useEditorStore((s) => s.changesPanelOpen);
+  const toggleChangesPanel = useEditorStore((s) => s.toggleChangesPanel);
   const [showProdConfirm, setShowProdConfirm] = React.useState(false);
+  const [showInfoMenu, setShowInfoMenu] = React.useState(false);
 
   const isLeader = currentUser?.role === "leader";
   const tabs = isLeader ? [...baseTabs, safetyTab, reviewsTab] : baseTabs;
@@ -213,7 +235,7 @@ export function UnifiedHeader() {
               canPush
                 ? environment === "dev"
                   ? "bg-badge-submitted text-white hover:bg-badge-submitted/80 cursor-pointer"
-                  : "bg-badge-pending text-black hover:bg-badge-pending/80 cursor-pointer"
+                  : "bg-badge-pending text-background hover:bg-badge-pending/80 cursor-pointer"
                 : "bg-surface-hover text-text-tertiary cursor-not-allowed"
             }`}
             title={
@@ -259,20 +281,64 @@ export function UnifiedHeader() {
 
           <div className="flex items-center gap-2 pl-2 border-l border-sidebar-border">
             <button
-              onClick={openWhatsNew}
-              className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+              onClick={toggleChangesPanel}
+              className={`w-8 h-8 flex items-center justify-center rounded-md border border-sidebar-border transition-colors cursor-pointer ${
+                changesPanelOpen
+                  ? "bg-accent/10 text-accent border-accent/40"
+                  : "text-text-secondary hover:text-foreground hover:bg-surface-hover"
+              }`}
+              title="Toggle changes panel"
             >
-              What&apos;s new
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 3v18" />
+                <path d="M18 9l-6-6-6 6" />
+                <path d="M18 21l-6-6-6 6" />
+              </svg>
             </button>
-            <a
-              href="/changelog/current"
-              target="_blank"
-              rel="noreferrer"
-              data-tour="whats-new-link-pdf"
-              className="px-2.5 py-1.5 text-[11px] rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover"
-            >
-              Current PDF
-            </a>
+            <div className="relative">
+              <button
+                onClick={() => setShowInfoMenu((v) => !v)}
+                className="w-8 h-8 flex items-center justify-center rounded-md border border-sidebar-border text-text-secondary hover:text-foreground hover:bg-surface-hover cursor-pointer"
+                title="Info & resources"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </button>
+              {showInfoMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowInfoMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-sidebar-border bg-surface shadow-lg py-1">
+                    <button
+                      onClick={() => { openWhatsNew(); setShowInfoMenu(false); }}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-surface-hover cursor-pointer flex items-center gap-2"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      What&apos;s new
+                    </button>
+                    <a
+                      href="/changelog/current"
+                      target="_blank"
+                      rel="noreferrer"
+                      data-tour="whats-new-link-pdf"
+                      onClick={() => setShowInfoMenu(false)}
+                      className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-surface-hover cursor-pointer flex items-center gap-2"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                      </svg>
+                      Current PDF
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
             <ThemeToggle />
             <UserMenu />
           </div>

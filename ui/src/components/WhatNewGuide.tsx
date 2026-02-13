@@ -17,30 +17,33 @@ interface PlanItem {
 }
 
 const planItems: PlanItem[] = [
-  { label: "1. Base UX de navegación y layout", status: "done" },
-  { label: "2. Stage folders en mock/repo de test", status: "done" },
+  { label: "1. Base navigation UX and layout", status: "done" },
+  { label: "2. Stage folders in mock/test repo", status: "done" },
   { label: "3. SQL Explorer + Pipelines Simple/Pro", status: "done" },
-  { label: "4. YAML task config + cohesión DAG/task", status: "done" },
+  { label: "4. YAML task config + DAG/task cohesion", status: "done" },
   { label: "5. Save/Push workflow", status: "done" },
-  { label: "6. Alta pipeline + DnD hardening", status: "done" },
-  { label: "7. Push unificado + confirmación Prod", status: "done" },
-  { label: "8. Task config UX (gear) + diff discoverable", status: "done" },
-  { label: "9. DDL visible + DQA realista (2 tipos)", status: "done" },
+  { label: "6. Pipeline creation + DnD hardening", status: "done" },
+  { label: "7. Unified Push + Prod confirmation", status: "done" },
+  { label: "8. Task config UX (gear) + discoverable diff", status: "done" },
+  { label: "9. Visible DDL + realistic DQA (2 types)", status: "done" },
   { label: "10. Pro folder focus -> pipeline summary", status: "done" },
   { label: "11. SQL Explorer manage connections", status: "done" },
   { label: "12. Safety guardrails (Team Leader)", status: "done" },
-  { label: "13. Status labels humanos + modal Prod", status: "done" },
+  { label: "13. Human-readable status labels + Prod modal", status: "done" },
   { label: "14. Header hierarchy + Push clarity", status: "done" },
   { label: "15. Task cards config summary", status: "done" },
   { label: "16. SQL Explorer DBeaver clicks + breadcrumb", status: "done" },
   { label: "17. Manage connections UX guardrails", status: "done" },
   { label: "18. Safety guardrails callouts", status: "done" },
-  { label: "19. Joyride storytelling + fallbacks", status: "current" },
+  { label: "19. Guided tour + storytelling fallbacks", status: "done" },
+  { label: "20. SQL Explorer database navigator", status: "done" },
+  { label: "21. SQL Explorer connection engine icon", status: "done" },
+  { label: "22. UI overhaul — wow factor + polish", status: "current" },
 ];
 
 const outOfScopeItems = [
-  "Ejecución real de queries en base de datos.",
-  "Creación real de PR/notificaciones en proveedor git (hoy: MOCK-PR).",
+  "Real query execution against a database.",
+  "Real PR creation/notifications in git provider (currently: MOCK-PR).",
 ];
 
 export function WhatNewGuide() {
@@ -65,71 +68,71 @@ export function WhatNewGuide() {
       const baseSteps: Step[] = [
         {
           target: '[data-tour="nav-pipelines"]',
-          content: "Abrí Pipelines para ver estado agregado de cada flujo.",
+          content: "Open Pipelines to see the aggregate status of each flow.",
           disableBeacon: true,
         },
         {
           target: '[data-tour="status-legend"]',
-          content: "Estos badges muestran el lifecycle del archivo/pipeline. Tip: en scaffold podés ciclar status por fila.",
+          content: "These badges show the file/pipeline lifecycle. Tip: in scaffold you can cycle status per row.",
         },
         {
           target: '[data-tour="create-pipeline-button"]',
-          content: "Alta rápida: Create pipeline (1 paso) para seedear tasks extract/transform/load/ddl/dqa.",
+          content: "Quick create: one-step pipeline creation to seed extract/transform/load/ddl/dqa tasks.",
         },
         {
           target: '[data-tour="create-pipeline-modal"]',
-          content: "Completá integration, name, type y schedule. (Mock, pero con estructura realista.)",
+          content: "Fill in integration, name, type, and schedule. (Mock data, but realistic structure.)",
         },
         {
           target: '[data-tour="create-pipeline-submit"]',
-          content: "Crea DAG + tasks seed y abre el pipeline para editar.",
+          content: "Creates the DAG + seed tasks and opens the pipeline for editing.",
         },
         {
           target: '[data-tour="workspace-save-all"]',
-          content: "Paso 1: Save all. Guarda cambios locales y mueve a estado Saved.",
+          content: "Step 1: Save all. Saves local changes and moves files to Saved status.",
         },
         {
           target: '[data-tour="environment-toggle"]',
-          content: "Paso 2: elegí Dev o Prod. Define submit/push (no es checkout de branch).",
+          content: "Step 2: choose Dev or Prod. Defines submit/push target (not a branch checkout).",
         },
         {
           target: '[data-tour="workspace-push"]',
-          content: "Paso 3: Push. En Dev sube el batch; en Prod abre confirmación y lo manda a review (requiere Team Leader).",
+          content: "Step 3: Push. In Dev, pushes the batch; in Prod, opens confirmation and sends to review (requires Team Leader).",
         },
         {
           target: '[data-tour="whats-new-link-pdf"]',
-          content: "Este link abre el PDF más nuevo (según el número de phase en docs/changelogs).",
+          content: "This link opens the latest PDF changelog (by phase number in docs/changelogs).",
         },
       ];
 
       if (isLeader) {
         baseSteps.push({
           target: '[data-tour="nav-safety"]',
-          content: "Safety (leader-only): define guardrails de equipo (Explorer y Pipes).",
+          content: "Safety (leader-only): define team guardrails for Explorer and Pipes.",
         });
         baseSteps.push({
           target: '[data-tour="nav-reviews"]',
-          content: "En Reviews ves lo pendiente de aprobación (Prod).",
+          content: "In Reviews you see items pending approval (Prod).",
         });
         if (pendingReviewCount > 0) {
           baseSteps.push({
             target: '[data-tour="approve-all"]',
-            content: "Approve All aprueba todo el lote pendiente.",
+            content: "Approve All approves the entire pending batch.",
           });
           baseSteps.push({
             target: '[data-tour="request-changes"]',
-            content: "Request Changes rechaza el lote y lo devuelve a draft.",
+            content: "Request Changes rejects the batch and returns it to draft.",
           });
         } else {
           baseSteps.push({
             target: '[data-tour="reviews-content"]',
-            content: "No hay pendientes ahora. Cambiá a Prod y hacé Push para generar una review.",
+            content: "No pending items right now. Switch to Prod and Push to generate a review.",
           });
         }
       } else {
         baseSteps.push({
           target: '[data-tour="user-menu-trigger"]',
-          content: "Tip: cambiá a Team Leader desde el menú de usuario para probar Approve/Reject.",
+          content: "Tip: switch to Team Leader from the user menu to try Approve/Reject.",
         });
       }
 
@@ -201,7 +204,7 @@ export function WhatNewGuide() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">What&apos;s new</h2>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Fase 19: joyride storytelling + demo fallbacks (sin regresiones)
+                  Phase 22: UI overhaul — dashboard, DAG flow, console, changes panel
                 </p>
               </div>
               <button

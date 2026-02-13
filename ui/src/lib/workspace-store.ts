@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ViewMode = "code" | "pipeline" | "approvals" | "safety";
+export type ViewMode = "home" | "code" | "pipeline" | "approvals" | "safety";
 export type PipelineSubMode = "simple" | "pro";
 
 interface WorkspaceStore {
@@ -14,7 +14,7 @@ interface WorkspaceStore {
 export const useWorkspaceStore = create<WorkspaceStore>()(
   persist(
     (set) => ({
-      viewMode: "code",
+      viewMode: "home",
       pipelineSubMode: "simple",
       setViewMode: (mode) => set({ viewMode: mode }),
       setPipelineSubMode: (mode) => set({ pipelineSubMode: mode }),
