@@ -51,6 +51,12 @@ export function PipelineView() {
     setPipelineSubMode("pro");
     setOpenCreate(false);
     addToast(`Pipeline ${result.displayFolder} created with 5 stage tasks`);
+
+    // Scroll the new folder into view after React renders
+    requestAnimationFrame(() => {
+      const folderEl = document.querySelector(`[data-path="${result.rootFolderPath}"]`);
+      folderEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   };
 
   return (
@@ -87,9 +93,6 @@ export function PipelineView() {
             Create pipeline
           </button>
         </div>
-        <span className="text-[10px] text-text-tertiary">
-          Pipeline submode persisted
-        </span>
       </div>
 
       {pipelineSubMode === "simple" ? <PipelineBoard /> : <SqlFileWorkbench />}

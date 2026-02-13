@@ -80,7 +80,7 @@ export function FileTreeNode({ node, depth }: FileTreeNodeProps) {
 
   if (node.isFolder) {
     return (
-      <div role="treeitem" aria-expanded={isExpanded} aria-selected={isFolderSelected}>
+      <div role="treeitem" aria-expanded={isExpanded} aria-selected={isFolderSelected} data-path={node.path}>
         <div
           className={`flex items-center gap-1.5 py-1 cursor-pointer rounded-sm mx-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-sm min-w-0 ${
             isFolderSelected

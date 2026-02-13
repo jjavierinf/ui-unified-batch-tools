@@ -21,7 +21,7 @@ export function PipelineNav() {
   }, [dagConfigs, search]);
 
   return (
-    <div className="w-56 shrink-0 bg-surface border-r border-sidebar-border flex flex-col">
+    <div className="w-full h-full bg-surface flex flex-col">
       {/* Back button + search */}
       <div className="px-2 py-2 border-b border-sidebar-border space-y-1.5">
         <button
