@@ -87,9 +87,6 @@ export function PipelineView() {
             Create pipeline
           </button>
         </div>
-        <span className="text-[10px] text-text-tertiary">
-          Pipeline submode persisted
-        </span>
       </div>
 
       {pipelineSubMode === "simple" ? <PipelineBoard /> : <SqlFileWorkbench />}
