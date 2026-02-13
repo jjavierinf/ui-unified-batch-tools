@@ -113,7 +113,7 @@ export function TaskConfigFields({
               })
             }
             className="w-full border border-sidebar-border rounded-md px-2 py-1.5 bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-colors"
-            placeholder="e.g. sqlserver_Accounts"
+            placeholder="e.g. sqlserver_ecom_src"
             spellCheck={false}
           />
         </div>

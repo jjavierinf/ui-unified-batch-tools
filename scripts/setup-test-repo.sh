@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sets up a test git repo for the Unified Batch Tools UI
-# Creates branches: main (prod) and dev, populated with SQL files from mock data
+# Creates branches: main (prod) and dev, populated with generic SQL files
 
 set -euo pipefail
 
@@ -18,303 +18,119 @@ cd "$REPO_DIR"
 git init
 git checkout -b main
 
-# ── CRM_integration / AccountReference ──
-mkdir -p dags/CRM_integration/AccountReference/{ddl,extract,transform,dqa}
+write_pipeline() {
+  local integration="$1"
+  local pipe="$2"
+  local table="$3"
 
-cat > dags/CRM_integration/AccountReference/ddl/create_table_stage.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountReference (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    customerID STRING
+  mkdir -p "dags/${integration}/${pipe}/{ddl,extract,transform,load,dqa}"
+
+  cat > "dags/${integration}/${pipe}/ddl/create_table_stage.sql" << SQLEOF
+CREATE TABLE IF NOT EXISTS db_stage.${table} (
+  id BIGINT,
+  created_at DATETIME,
+  updated_at DATETIME,
+  col_a STRING,
+  col_b STRING
 )
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash);
+PRIMARY KEY (id)
+DISTRIBUTED BY HASH (id);
 SQLEOF
 
-cat > dags/CRM_integration/AccountReference/ddl/create_table_data_model.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_data_model.Accounts_dbo_AccountReference (
-    customerID STRING,
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME
+  cat > "dags/${integration}/${pipe}/ddl/create_table_data_model.sql" << SQLEOF
+CREATE TABLE IF NOT EXISTS db_data_model.${table} (
+  id BIGINT,
+  created_at DATETIME,
+  updated_at DATETIME,
+  col_a STRING,
+  col_b STRING
 )
-PRIMARY KEY (customerID)
-DISTRIBUTED BY HASH (customerID);
+PRIMARY KEY (id)
+DISTRIBUTED BY HASH (id);
 SQLEOF
 
-cat > dags/CRM_integration/AccountReference/ddl/bi_custom_ddl.sql << 'SQLEOF'
-ALTER TABLE db_data_model.Accounts_dbo_AccountReference
-ADD COLUMN IF NOT EXISTS bi_note STRING
+  cat > "dags/${integration}/${pipe}/ddl/bi_custom_ddl.sql" << SQLEOF
+-- BI custom DDL (scaffold example)
+ALTER TABLE db_data_model.${table}
+ADD COLUMN IF NOT EXISTS demo_note STRING
 ;
 SQLEOF
 
-cat > dags/CRM_integration/AccountReference/extract/data_model_task.sql << 'SQLEOF'
+  cat > "dags/${integration}/${pipe}/extract/extract_${table}.sql" << SQLEOF
 SELECT *
-FROM Accounts_dbo_AccountReference
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 HOUR)
+FROM src.${table}_raw
+WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 HOUR)
 ;
 SQLEOF
 
-cat > dags/CRM_integration/AccountReference/transform/data_model_task.sql << 'SQLEOF'
-TRUNCATE TABLE db_data_model.Accounts_dbo_AccountReference
-;
-
-INSERT INTO db_data_model.Accounts_dbo_AccountReference
-SELECT
-    upper(trim(customerID)),
-    saga_hash,
-    saga_real_run_ts
-FROM db_stage.Accounts_dbo_AccountReference
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et }}'
-;
-SQLEOF
-
-cat > dags/CRM_integration/AccountReference/dqa/delete_logs.sql << 'SQLEOF'
-DELETE FROM db_stage.Accounts_dbo_AccountReference
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 3 MONTH)
-;
-SQLEOF
-
-# ── CRM_integration / Game ──
-mkdir -p dags/CRM_integration/Game/{ddl,extract,transform,dqa}
-
-cat > dags/CRM_integration/Game/ddl/create_table_stage.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_stage.GamingIntegration_gc_Game (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    gameID INT,
-    gameName STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash);
-SQLEOF
-
-cat > dags/CRM_integration/Game/ddl/create_table_data_model.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_data_model.GamingIntegration_gc_Game (
-    gameID INT,
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    name STRING
-)
-PRIMARY KEY (gameID)
-DISTRIBUTED BY HASH (gameID);
-SQLEOF
-
-cat > dags/CRM_integration/Game/ddl/bi_custom_ddl.sql << 'SQLEOF'
-ALTER TABLE db_data_model.GamingIntegration_gc_Game
-ADD COLUMN IF NOT EXISTS bi_segment STRING
-;
-SQLEOF
-
-cat > dags/CRM_integration/Game/extract/data_model_task.sql << 'SQLEOF'
+  cat > "dags/${integration}/${pipe}/transform/transform_${table}.sql" << SQLEOF
+INSERT INTO db_data_model.${table}
 SELECT *
-FROM gc.Game
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
+FROM db_stage.${table}
+WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 DAY)
 ;
 SQLEOF
 
-cat > dags/CRM_integration/Game/transform/data_model_task.sql << 'SQLEOF'
-TRUNCATE TABLE db_data_model.GamingIntegration_gc_Game
-;
-
-INSERT INTO db_data_model.GamingIntegration_gc_Game
-SELECT
-    gameID,
-    upper(trim(gameName)),
-    saga_hash,
-    saga_real_run_ts
-FROM db_stage.GamingIntegration_gc_Game
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+  cat > "dags/${integration}/${pipe}/transform/cleanup_stage.sql" << SQLEOF
+-- Cleanup logs (NOT DQA)
+DELETE FROM db_stage.${table}
+WHERE updated_at < DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 30 DAY)
 ;
 SQLEOF
 
-cat > dags/CRM_integration/Game/dqa/delete_logs.sql << 'SQLEOF'
-DELETE FROM db_stage.GamingIntegration_gc_Game
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
-;
-SQLEOF
-
-# ── CRM_integration / GameTransaction ──
-mkdir -p dags/CRM_integration/GameTransaction/{ddl,extract,transform,dqa}
-
-cat > dags/CRM_integration/GameTransaction/ddl/create_table_stage.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_stage.GamingIntegration_tr_GameTransaction (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    transactionID BIGINT,
-    amount DECIMAL(18,2)
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash);
-SQLEOF
-
-cat > dags/CRM_integration/GameTransaction/ddl/create_table_data_model.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_data_model.GamingIntegration_tr_GameTransaction (
-    gameTransactionId BIGINT,
-    saga_hash BIGINT,
-    saga_real_run DATETIME,
-    amount DECIMAL(18,2)
-)
-PRIMARY KEY (gameTransactionID)
-DISTRIBUTED BY HASH (gameTransactionID);
-SQLEOF
-
-cat > dags/CRM_integration/GameTransaction/ddl/bi_custom_ddl.sql << 'SQLEOF'
-ALTER TABLE db_data_model.GamingIntegration_tr_GameTransaction
-ADD COLUMN IF NOT EXISTS bi_flag STRING
-;
-SQLEOF
-
-cat > dags/CRM_integration/GameTransaction/extract/data_model_task.sql << 'SQLEOF'
+  cat > "dags/${integration}/${pipe}/load/load_${table}.sql" << SQLEOF
+INSERT INTO db_data_model.${table}
 SELECT *
-FROM tr.GameTransaction
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
+FROM db_stage.${table}
+WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 1 DAY)
 ;
 SQLEOF
 
-cat > dags/CRM_integration/GameTransaction/transform/data_model_task.sql << 'SQLEOF'
-INSERT INTO db_data_model.GamingIntegration_tr_GameTransaction
+  cat > "dags/${integration}/${pipe}/dqa/${table}_dates_sanity.sql" << SQLEOF
+-- DQA type A: single query rule check (same DB)
+-- Alert if there are rows where updated_at is before created_at.
 SELECT
-    stage.gameTransactionId,
-    stage.saga_hash,
-    stage.saga_real_run_ts,
-    stage.amount
-FROM db_stage.GamingIntegration_tr_GameTransaction AS stage
-WHERE stage.saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+  COUNT(*) AS invalid_rows
+FROM (
+  SELECT
+    CASE WHEN updated_at < created_at THEN 1 ELSE 0 END AS is_invalid
+  FROM db_data_model.${table}
+) t
+WHERE is_invalid = 1
 ;
 SQLEOF
 
-cat > dags/CRM_integration/GameTransaction/dqa/delete_logs.sql << 'SQLEOF'
-SELECT COUNT(*) AS source_count
-FROM db_stage.GamingIntegration_tr_GameTransaction
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
-;
-SQLEOF
-
-# ── BEATS_integration / AccountLogType ──
-mkdir -p dags/BEATS_integration/AccountLogType/{ddl,extract,transform,dqa}
-
-cat > dags/BEATS_integration/AccountLogType/ddl/create_table_stage.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_stage.Accounts_dbo_AccountLogType (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    accountLogTypeID STRING,
-    typeName STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash);
-SQLEOF
-
-cat > dags/BEATS_integration/AccountLogType/ddl/create_table_data_model.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_data_model.Accounts_dbo_AccountLogType (
-    accountLogTypeId SMALLINT,
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    typeName VARCHAR(50)
-)
-PRIMARY KEY (accountLogTypeId)
-DISTRIBUTED BY HASH (accountLogTypeId);
-SQLEOF
-
-cat > dags/BEATS_integration/AccountLogType/ddl/bi_custom_ddl.sql << 'SQLEOF'
-ALTER TABLE db_data_model.Accounts_dbo_AccountLogType
-ADD COLUMN IF NOT EXISTS bi_description STRING
-;
-SQLEOF
-
-cat > dags/BEATS_integration/AccountLogType/extract/data_model_task.sql << 'SQLEOF'
-SELECT *
-FROM dbo.AccountLogType
-WHERE rowModified >= DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 1 HOUR)
-;
-SQLEOF
-
-cat > dags/BEATS_integration/AccountLogType/transform/data_model_task.sql << 'SQLEOF'
-TRUNCATE TABLE db_data_model.Accounts_dbo_AccountLogType
-;
-
-INSERT INTO db_data_model.Accounts_dbo_AccountLogType
+  cat > "dags/${integration}/${pipe}/dqa/source_${table}_count_by_day.sql" << SQLEOF
+-- DQA type B (source query): count per day in source
 SELECT
-    accountLogTypeID,
-    saga_hash,
-    saga_real_run_ts,
-    typeName
-FROM db_stage.Accounts_dbo_AccountLogType
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+  CAST(updated_at AS DATE) AS day,
+  COUNT(*) AS cnt
+FROM src.${table}_raw
+WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)
+GROUP BY 1
+ORDER BY 1
 ;
 SQLEOF
 
-cat > dags/BEATS_integration/AccountLogType/dqa/delete_logs.sql << 'SQLEOF'
-DELETE FROM db_stage.Accounts_dbo_AccountLogType
-WHERE saga_logical_run_ts < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 90 DAY)
-;
-SQLEOF
-
-# ── data_sources / gaming_integration / DailyTransactionAmount ──
-mkdir -p dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/{ddl,extract,transform,dqa}
-
-cat > dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/create_table_stage.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_stage.gamingintegration_tr_dailytransactionamount (
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    saga_logical_run_ts DATETIME,
-    dailyTransactionAmountID STRING,
-    customerID STRING,
-    balance STRING,
-    balanceDate STRING
-)
-PRIMARY KEY (saga_hash)
-DISTRIBUTED BY HASH (saga_hash);
-SQLEOF
-
-cat > dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/create_table_data_model.sql << 'SQLEOF'
-CREATE TABLE IF NOT EXISTS db_data_model.gamingintegration_tr_dailytransactionamount (
-    dailyTransactionAmountId STRING,
-    saga_hash BIGINT,
-    saga_real_run_ts DATETIME,
-    customerID STRING,
-    balance STRING,
-    balanceDate DATE
-)
-PRIMARY KEY (dailyTransactionAmountId)
-DISTRIBUTED BY HASH (dailyTransactionAmountId);
-SQLEOF
-
-cat > dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/ddl/bi_custom_ddl.sql << 'SQLEOF'
-ALTER TABLE db_data_model.gamingintegration_tr_dailytransactionamount
-ADD COLUMN IF NOT EXISTS bi_bucket STRING
-;
-SQLEOF
-
-cat > dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/extract/select_from_source.sql << 'SQLEOF'
-SELECT *
-FROM tr.DailyTransactionAmount
-WHERE rowModified >= DATEADD(HOUR, -1, CAST('<saga_logical_run_ts>' AS DATETIME))
-;
-SQLEOF
-
-cat > dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/transform/stage_to_data_model.sql << 'SQLEOF'
-INSERT INTO db_data_model.gamingintegration_tr_dailytransactionamount
+  cat > "dags/${integration}/${pipe}/dqa/target_${table}_count_by_day.sql" << SQLEOF
+-- DQA type B (target query): count per day in target
 SELECT
-    dailyTransactionAmountID,
-    saga_hash,
-    saga_real_run_ts,
-    upper(trim(customerID)),
-    balance,
-    balanceDate
-FROM db_stage.gamingintegration_tr_dailytransactionamount
-WHERE saga_logical_run_ts = '{{ ts | convert_utc_to_et("US/Eastern") }}'
+  CAST(updated_at AS DATE) AS day,
+  COUNT(*) AS cnt
+FROM db_data_model.${table}
+WHERE updated_at >= DATE_SUB('{{ ts | convert_utc_to_et }}', INTERVAL 7 DAY)
+GROUP BY 1
+ORDER BY 1
 ;
 SQLEOF
+}
 
-cat > dags/data_sources/gaming_integration/sqlserver_gamingintegration_tr_dailytransactionamount/dqa/delete_stage_old_records.sql << 'SQLEOF'
-DELETE FROM db_stage.gamingintegration_tr_dailytransactionamount
-WHERE balanceDate < DATE_SUB('{{ ts | convert_utc_to_et("US/Eastern") }}', INTERVAL 2 DAY)
-;
-SQLEOF
+# Pipelines (retail/ecommerce flavored, but generic)
+write_pipeline "ecom_app" "orders_daily" "orders"
+write_pipeline "ecom_app" "customers_snapshot" "customers"
+write_pipeline "ecom_app" "inventory_hourly" "inventory_levels"
+write_pipeline "store_pos" "store_sales_daily" "store_sales"
+write_pipeline "ad_platform" "campaign_metrics_hourly" "campaign_metrics"
 
 # ── schema_and_user_creation ──
 mkdir -p dags/schema_and_user_creation/load
@@ -336,7 +152,7 @@ SQLEOF
 
 # ── Initial commit on main ──
 git add -A
-git commit -m "Initial pipeline SQL files"
+git commit -m "Initial pipeline SQL files (generic)"
 
 # ── Create dev branch ──
 git checkout -b dev
