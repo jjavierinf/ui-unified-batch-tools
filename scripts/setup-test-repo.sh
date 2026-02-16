@@ -23,7 +23,7 @@ write_pipeline() {
   local pipe="$2"
   local table="$3"
 
-  mkdir -p "dags/${integration}/${pipe}/{ddl,extract,transform,load,dqa}"
+  mkdir -p "dags/${integration}/${pipe}/ddl" "dags/${integration}/${pipe}/extract" "dags/${integration}/${pipe}/transform" "dags/${integration}/${pipe}/load" "dags/${integration}/${pipe}/dqa"
 
   cat > "dags/${integration}/${pipe}/ddl/create_table_stage.sql" << SQLEOF
 CREATE TABLE IF NOT EXISTS db_stage.${table} (
