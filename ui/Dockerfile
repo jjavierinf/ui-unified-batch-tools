@@ -5,6 +5,7 @@ RUN npm ci --omit=dev
 
 FROM node:20-alpine AS build
 WORKDIR /app
+ENV PUPPETEER_SKIP_DOWNLOAD=1
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci
 COPY ui/ ./
