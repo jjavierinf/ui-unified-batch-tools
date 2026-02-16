@@ -2,7 +2,7 @@ import type { DagConfig, SqlFile } from "./types";
 import { anonymizeFiles, deepAnonymize } from "./demo-mode";
 
 function f(content: string): SqlFile {
-  return { content, savedContent: content, status: "draft" };
+  return { content, savedContent: content, status: "saved_local" };
 }
 
 type Stage = "ddl" | "extract" | "transform" | "load" | "dqa";

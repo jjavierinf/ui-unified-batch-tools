@@ -37,6 +37,7 @@ interface EditorStore {
   approveAll: () => void;
   rejectAll: () => void;
   resetToDefaults: () => void;
+  loadProject: (files: Record<string, SqlFile>) => void;
 }
 
 export const useEditorStore = create<EditorStore>()(
@@ -354,9 +355,17 @@ export const useEditorStore = create<EditorStore>()(
           diffCollapsed: false,
           changesPanelOpen: false,
         }),
+
+      loadProject: (files) =>
+        set({
+          files,
+          selectedFile: null,
+          selectedFolder: null,
+          expandedFolders: new Set<string>(),
+        }),
     }),
     {
-      name: "editor-store-v2",
+      name: "editor-store-v3",
       storage: {
         getItem: (name) => {
           const raw = localStorage.getItem(name);
