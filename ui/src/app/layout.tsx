@@ -34,6 +34,9 @@ export default function RootLayout({
         <QuickOpen />
         <KeyboardShortcuts />
         <SupportButton />
+        <div className="fixed bottom-2 right-2 z-50 rounded bg-red-600/80 px-2 py-0.5 text-[10px] text-white font-mono select-none pointer-events-none">
+          v16/02 10:37
+        </div>
       </body>
     </html>
   );
