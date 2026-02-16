@@ -8,7 +8,7 @@ import { useToastStore } from "@/lib/toast-store";
 import { EnvironmentToggle } from "./EnvironmentToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
-import { BranchIndicator } from "./git/BranchIndicator";
+import { ProjectSwitcher } from "./ProjectSwitcher";
 import { PushProdConfirmModal } from "./PushProdConfirmModal";
 
 const baseTabs: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
@@ -202,7 +202,7 @@ export function UnifiedHeader() {
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 pr-2 border-r border-sidebar-border">
-            <BranchIndicator />
+            <ProjectSwitcher />
             <EnvironmentToggle />
           </div>
 

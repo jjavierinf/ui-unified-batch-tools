@@ -36,6 +36,7 @@ interface PipelineStore {
   updateTaskConfig: (taskId: string, config: TaskConfig) => void;
   createPipeline: (input: CreatePipelineInput) => CreatePipelineResult;
   resetToDefaults: () => void;
+  loadProject: (dagConfigs: DagConfig[], tasks: PipelineTask[]) => void;
 }
 
 export const usePipelineStore = create<PipelineStore>()(
@@ -284,7 +285,14 @@ export const usePipelineStore = create<PipelineStore>()(
           dagConfigs: initialDagConfigs,
           selectedPipeline: null,
         }),
+
+      loadProject: (dags, tks) =>
+        set({
+          dagConfigs: dags,
+          tasks: tks,
+          selectedPipeline: null,
+        }),
     }),
-    { name: "pipeline-store-v2" }
+    { name: "pipeline-store-v3" }
   )
 );
